@@ -1,0 +1,33 @@
+[project]
+name = "hamilterm"
+version = "0.1.0"
+description = "Symbolically computes the rotational Hamiltonian for a given molecular term symbol."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["sympy>=1.14.0"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = [
+    "A",
+    "ARG",
+    "C4",
+    "C90",
+    "D",
+    "E",
+    "FIX",
+    "I",
+    "N",
+    "NPY",
+    "PL",
+    "RET",
+    "SIM",
+    "TC",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
