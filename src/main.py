@@ -20,8 +20,7 @@ from typing import cast
 
 import sympy as sp
 
-j_qn: sp.Symbol = sp.symbols("J")
-B, D, A, lamda, gamma, o, p, q, x = sp.symbols("B D A lambda gamma o p q x")
+A, B, D, j_qn, o, p, q, x, lamda, gamma = sp.symbols("A B D J o p q x lambda gamma")
 
 include_r: bool = True
 include_so: bool = True
@@ -190,7 +189,9 @@ def h_rotational(
     return sp.S.Zero
 
 
-def h_spin_orbit(i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]]) -> sp.Expr:
+def h_spin_orbit(
+    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+) -> sp.Expr:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
     H_so = A(Lz * Sz).
@@ -199,12 +200,18 @@ def h_spin_orbit(i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
         basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (sp.Rational): Quantum number S
 
     Returns:
         sp.Expr: Matrix elements for A(Lz * Sz)
 
     """
     lambda_qn_j, sigma_qn_j, _ = basis[j]
+
+    # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. (Neglecting the term for
+    # states with Λ > 0 and S > 1 for now.)
+    if abs(lambda_qn_j) == 0 and s_qn == 0:
+        return sp.S.Zero
 
     # ⟨Λ, Σ|LzSz|Λ, Σ⟩ = ΛΣ
     if i == j:
@@ -232,6 +239,11 @@ def h_spin_spin(
     """
     sigma_qn_j: sp.Rational = basis[j][1]
 
+    # Spin-spin coupling is only defined for states with S > 1/2. (Neglecting the term for states
+    # with S > 3/2 for now.)
+    if s_qn < safe_rational(1, 2):
+        return sp.S.Zero
+
     # ⟨S, Σ|3Sz^2 - S^2|S, Σ⟩ = 3Σ^2 − S(S + 1)
     if i == j:
         return sp.Rational(2, 3) * lamda * (3 * mel_sz(sigma_qn_j) ** 2 - mel_s2(s_qn))
@@ -258,6 +270,11 @@ def h_spin_rotation(
     """
     _, sigma_qn_i, omega_qn_i = basis[i]
     _, sigma_qn_j, omega_qn_j = basis[j]
+
+    # Spin-rotation coupling is only defined for states with S > 0. (Neglecting the term for states
+    # with S > 1 for now.)
+    if s_qn == 0:
+        return sp.S.Zero
 
     # ⟨S, Ω, Σ|JzSz - S^2|S, Ω, Σ⟩ = ΩΣ - S(S + 1)
     if i == j:
@@ -295,7 +312,7 @@ def h_lambda_doubling(
     lambda_qn_i, sigma_qn_i, omega_qn_i = basis[i]
     lambda_qn_j, sigma_qn_j, omega_qn_j = basis[j]
 
-    # Only allow Λ ± 2 transitions, return early if not.
+    # Lambda doubling is only defined for Λ ± 2 transitions.
     if abs(lambda_qn_i - lambda_qn_j) != 2:
         return sp.S.Zero
 
@@ -352,13 +369,11 @@ def build_hamiltonian(
     """
     h_mat: sp.MutableDenseMatrix = sp.zeros(len(basis))
 
-    # TODO: 25/05/29 - Use the molecular term symbol to see which terms need to be considered and
-    #       only compute those terms.
     for i in range(len(basis)):
         for j in range(len(basis)):
             h_mat[i, j] = (
                 f_r * h_rotational(i, j, basis, s_qn)
-                + f_so * h_spin_orbit(i, j, basis)
+                + f_so * h_spin_orbit(i, j, basis, s_qn)
                 + f_ss * h_spin_spin(i, j, basis, s_qn)
                 + f_sr * h_spin_rotation(i, j, basis, s_qn)
                 + f_ld * h_lambda_doubling(i, j, basis, s_qn)
@@ -460,21 +475,20 @@ def main() -> None:
     term_symbol: str = "2Pi"
 
     s_qn, lambda_qn = parse_term_symbol(term_symbol)
-    basis: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis(s_qn, lambda_qn)
-    h_mat: sp.MutableDenseMatrix = build_hamiltonian(basis, s_qn)
-    eigenvals: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
-
     print("Term symbol:")
     print(f"{term_symbol}: S={s_qn}, Λ={lambda_qn}")
 
     print("\nBasis states |Λ, Σ, Ω>:")
+    basis: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis(s_qn, lambda_qn)
     for state in basis:
         print(f"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
 
     print("\nHamiltonian matrix:")
+    h_mat: sp.MutableDenseMatrix = build_hamiltonian(basis, s_qn)
     sp.pprint(h_mat.subs(j_qn * (j_qn + 1), x).applyfunc(sp.simplify))
 
     print("\nEigenvalues:")
+    eigenvals: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
     for eigenvalue in eigenvals:
         sp.pprint(sp.nsimplify(eigenvalue))
 
