@@ -1,5 +1,5 @@
 # module main
-"""Computes the first-order Hamiltonian for Σ and Π states."""
+"""Symbolically computes the diatomic Hamiltonian for Σ and Π states."""
 
 # Copyright (C) 2025 Nathan G. Phillips
 
@@ -20,16 +20,19 @@ from typing import cast
 
 import sympy as sp
 
-A, B, D, j_qn, o, p, q, x, lamda, gamma = sp.symbols("A B D J o p q x lambda gamma")
+A, B, D, j_qn, o, p, q, x, lamda, gamma = sp.symbols("A, B, D, J, o, p, q, x, lambda, gamma")
 
 include_r: bool = True
-include_so: bool = True
-include_ss: bool = True
-include_sr: bool = True
-include_ld: bool = True
+include_so: bool = False
+include_ss: bool = False
+include_sr: bool = False
+include_ld: bool = False
 
 f_r, f_so, f_ss, f_sr, f_ld = map(int, [include_r, include_so, include_ss, include_sr, include_ld])
 
+# MAX_N_POWER can be 2, 4, 6, 8, 10, or 12. Powers above 12 have no associated constants and
+# therefore will not contribute to the calculation.
+MAX_N_POWER: int = 12
 LAMBDA_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
 
 
@@ -154,8 +157,72 @@ def mel_lz(lambda_qn: int) -> int:
     return lambda_qn
 
 
+def construct_n_operator_matrices(
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+) -> list[sp.MutableDenseMatrix]:
+    """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
+
+    Args:
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (sp.Rational): Quantum number S
+
+    Returns:
+        list[sp.MutableDenseMatrix]: N operator matrices
+    """
+    # The number of basis functions determine the size of the N operator matrix.
+    mat_size: int = len(basis_fns)
+
+    # Each N^(2k) operator, where k is an integer, will have its own operator matrix. This notation
+    # implies the N^2 operator occupies index 0, N^4 occupies index 1, etc.
+    n_op_mats: list[sp.MutableDenseMatrix] = [sp.zeros(mat_size) for _ in range(MAX_N_POWER // 2)]
+
+    # Matrix elements for the N^2 operator.
+    def mel_n2(i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]]) -> sp.Expr:
+        """Return matrix elements for the N^2 operator.
+
+        N^2 = J^2 + S^2 - 2JzSz - J+S- - J-S+.
+
+        Args:
+            i (int): Index i (row) of the Hamiltonian matrix
+            j (int): Index j (col) of the Hamiltonian matrix
+            basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+
+        Returns:
+            sp.Expr: Matrix elements for J^2 + S^2 - 2JzSz - J+S- - J-S+
+        """
+        _, sigma_qn_i, omega_qn_i = basis_fns[i]
+        _, sigma_qn_j, omega_qn_j = basis_fns[j]
+
+        # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
+        if i == j:
+            return mel_j2(j_qn) + mel_s2(s_qn) - 2 * mel_jz(omega_qn_j) * mel_sz(sigma_qn_j)
+
+        # ⟨J, S, Ω - 1, Σ - 1|J+S-|J, S, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+        if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
+            return -mel_jp(j_qn, omega_qn_j) * mel_sm(s_qn, sigma_qn_j)
+
+        # ⟨J, S, Ω + 1, Σ + 1|J-S+|J, S, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+        if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
+            return -mel_jm(j_qn, omega_qn_j) * mel_sp(s_qn, sigma_qn_j)
+
+        return sp.S.Zero
+
+    # Form the N^2 matrix using the matrix elements above.
+    for i in range(mat_size):
+        for j in range(mat_size):
+            n_op_mats[0][i, j] = mel_n2(i, j, basis_fns)
+
+    # The following N^(2k), where k > 1, matrices are formed using matrix multiplication.
+    for i in range(1, MAX_N_POWER // 2):
+        n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
+
+    return n_op_mats
+
+
 def h_rotational(
-    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int,
+    j: int,
+    n_op_mats: list[sp.MutableDenseMatrix],
 ) -> sp.Expr:
     """Return matrix elements for the rotational Hamiltonian.
 
@@ -164,33 +231,17 @@ def h_rotational(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (sp.Rational): Quantum number S
+        n_op_mats (list[sp.MutableDenseMatrix]): N operator matrices
 
     Returns:
         sp.Expr: Matrix elements for B(J^2 + S^2 - 2JzSz - J+S- - J-S+)
 
     """
-    _, sigma_qn_i, omega_qn_i = basis[i]
-    _, sigma_qn_j, omega_qn_j = basis[j]
-
-    # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
-    if i == j:
-        return B * (mel_j2(j_qn) + mel_s2(s_qn) - 2 * mel_jz(omega_qn_j) * mel_sz(sigma_qn_j))
-
-    # ⟨J, S, Ω - 1, Σ - 1|J+S-|J, S, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
-        return -B * (mel_jp(j_qn, omega_qn_j) * mel_sm(s_qn, sigma_qn_j))
-
-    # ⟨J, S, Ω + 1, Σ + 1|J-S+|J, S, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
-        return -B * (mel_jm(j_qn, omega_qn_j) * mel_sp(s_qn, sigma_qn_j))
-
-    return sp.S.Zero
+    return B * n_op_mats[0][i, j]
 
 
 def h_spin_orbit(
-    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
 ) -> sp.Expr:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
@@ -199,14 +250,14 @@ def h_spin_orbit(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
 
     Returns:
         sp.Expr: Matrix elements for A(Lz * Sz)
 
     """
-    lambda_qn_j, sigma_qn_j, _ = basis[j]
+    lambda_qn_j, sigma_qn_j, _ = basis_fns[j]
 
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. (Neglecting the term for
     # states with Λ > 0 and S > 1 for now.)
@@ -221,7 +272,7 @@ def h_spin_orbit(
 
 
 def h_spin_spin(
-    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
 ) -> sp.Expr:
     """Return matrix elements for the spin-spin Hamiltonian.
 
@@ -230,14 +281,14 @@ def h_spin_spin(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
 
     Returns:
         sp.Expr: Matrix elements for 2/3 * λ(3Sz^2 - S^2)
 
     """
-    sigma_qn_j: sp.Rational = basis[j][1]
+    sigma_qn_j: sp.Rational = basis_fns[j][1]
 
     # Spin-spin coupling is only defined for states with S > 1/2. (Neglecting the term for states
     # with S > 3/2 for now.)
@@ -252,7 +303,7 @@ def h_spin_spin(
 
 
 def h_spin_rotation(
-    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
 ) -> sp.Expr:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
@@ -261,15 +312,15 @@ def h_spin_rotation(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
 
     Returns:
         sp.Expr: Matrix elements for γ[JzSz + 0.5 * (J+S- + J-S+) - S^2]
 
     """
-    _, sigma_qn_i, omega_qn_i = basis[i]
-    _, sigma_qn_j, omega_qn_j = basis[j]
+    _, sigma_qn_i, omega_qn_i = basis_fns[i]
+    _, sigma_qn_j, omega_qn_j = basis_fns[j]
 
     # Spin-rotation coupling is only defined for states with S > 0. (Neglecting the term for states
     # with S > 1 for now.)
@@ -292,7 +343,7 @@ def h_spin_rotation(
 
 
 def h_lambda_doubling(
-    i: int, j: int, basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
 ) -> sp.Expr:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
@@ -301,7 +352,7 @@ def h_lambda_doubling(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
 
     Returns:
@@ -309,8 +360,8 @@ def h_lambda_doubling(
             0.5 * q(J+^2 + J-^2)
 
     """
-    lambda_qn_i, sigma_qn_i, omega_qn_i = basis[i]
-    lambda_qn_j, sigma_qn_j, omega_qn_j = basis[j]
+    lambda_qn_i, sigma_qn_i, omega_qn_i = basis_fns[i]
+    lambda_qn_j, sigma_qn_j, omega_qn_j = basis_fns[j]
 
     # Lambda doubling is only defined for Λ ± 2 transitions.
     if abs(lambda_qn_i - lambda_qn_j) != 2:
@@ -355,28 +406,30 @@ def h_lambda_doubling(
 
 
 def build_hamiltonian(
-    basis: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
 ) -> sp.MutableDenseMatrix:
     """Build the symbolic Hamiltonian matrix.
 
     Args:
-        basis (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
 
     Returns:
         sp.MutableDenseMatrix: Hamiltonian matrix H
 
     """
-    h_mat: sp.MutableDenseMatrix = sp.zeros(len(basis))
+    mat_size: int = len(basis_fns)
+    n_op_mats: list[sp.MutableDenseMatrix] = construct_n_operator_matrices(basis_fns, s_qn)
+    h_mat: sp.MutableDenseMatrix = sp.zeros(mat_size)
 
-    for i in range(len(basis)):
-        for j in range(len(basis)):
+    for i in range(mat_size):
+        for j in range(mat_size):
             h_mat[i, j] = (
-                f_r * h_rotational(i, j, basis, s_qn)
-                + f_so * h_spin_orbit(i, j, basis, s_qn)
-                + f_ss * h_spin_spin(i, j, basis, s_qn)
-                + f_sr * h_spin_rotation(i, j, basis, s_qn)
-                + f_ld * h_lambda_doubling(i, j, basis, s_qn)
+                f_r * h_rotational(i, j, n_op_mats)
+                + f_so * h_spin_orbit(i, j, basis_fns, s_qn)
+                + f_ss * h_spin_spin(i, j, basis_fns, s_qn)
+                + f_sr * h_spin_rotation(i, j, basis_fns, s_qn)
+                + f_ld * h_lambda_doubling(i, j, basis_fns, s_qn)
             )
 
     return h_mat
@@ -400,7 +453,9 @@ def parse_term_symbol(term_symbol: str) -> tuple[sp.Rational, int]:
     return s_qn, lambda_qn
 
 
-def generate_basis(s_qn: sp.Rational, lambda_qn: int) -> list[tuple[int, sp.Rational, sp.Rational]]:
+def generate_basis_fns(
+    s_qn: sp.Rational, lambda_qn: int
+) -> list[tuple[int, sp.Rational, sp.Rational]]:
     """Construct the Hund's case (a) basis set |Λ, Σ; Ω>.
 
     Args:
@@ -418,14 +473,14 @@ def generate_basis(s_qn: sp.Rational, lambda_qn: int) -> list[tuple[int, sp.Rati
 
     # For states with Λ > 1, include both +Λ and -Λ in the basis.
     lambdas: list[int] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
-    basis: list[tuple[int, sp.Rational, sp.Rational]] = []
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]] = []
 
     for lam in lambdas:
         for sigma in sigmas:
             omega: sp.Rational = cast("sp.Rational", lam + sigma)
-            basis.append((lam, sigma, omega))
+            basis_fns.append((lam, sigma, omega))
 
-    return basis
+    return basis_fns
 
 
 def safe_rational(num: int, denom: int) -> sp.Rational:
@@ -472,20 +527,20 @@ def fsn(num: int | sp.Rational | sp.Expr) -> str:
 
 def main() -> None:
     """Entry point."""
-    term_symbol: str = "2Pi"
+    term_symbol: str = "2Sigma"
 
     s_qn, lambda_qn = parse_term_symbol(term_symbol)
     print("Term symbol:")
     print(f"{term_symbol}: S={s_qn}, Λ={lambda_qn}")
 
     print("\nBasis states |Λ, Σ, Ω>:")
-    basis: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis(s_qn, lambda_qn)
-    for state in basis:
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis_fns(s_qn, lambda_qn)
+    for state in basis_fns:
         print(f"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
 
     print("\nHamiltonian matrix:")
-    h_mat: sp.MutableDenseMatrix = build_hamiltonian(basis, s_qn)
-    sp.pprint(h_mat.subs(j_qn * (j_qn + 1), x).applyfunc(sp.simplify))
+    h_mat: sp.MutableDenseMatrix = build_hamiltonian(basis_fns, s_qn)
+    sp.pprint(h_mat.subs(j_qn * (j_qn + 1), x).applyfunc(sp.nsimplify))
 
     print("\nEigenvalues:")
     eigenvals: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
