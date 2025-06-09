@@ -35,6 +35,15 @@ o, p, q, o_D, p_D, q_D, o_H, p_H, q_H, o_L, p_L, q_L = sp.symbols(
     "o, p, q, o_D, p_D, q_D, o_H, p_H, q_H, o_L, p_L, q_L"
 )
 
+# Groupings of centrifugal distortion constants for each coupling term.
+SPIN_ORBIT_CD_CONSTS: list[sp.Symbol] = [A_D, A_H, A_L, A_M]
+SPIN_SPIN_CD_CONSTS: list[sp.Symbol] = [lambda_D, lambda_H]
+SPIN_ROTATION_CD_CONSTS: list[sp.Symbol] = [gamma_D, gamma_H, gamma_L]
+LAMBDA_DOUBLING_CD_CONSTS_OPQ: list[sp.Symbol] = [o_D + p_D + q_D, o_H + p_H + q_H, o_L + p_L + q_L]
+LAMBDA_DOUBLING_CD_CONSTS_PQ: list[sp.Symbol] = [p_D + 2 * q_D, p_H + 2 * q_H, p_L + 2 * q_L]
+LAMBDA_DOUBLING_CD_CONSTS_Q: list[sp.Symbol] = [q_D, q_H, q_L]
+
+# Manually select which terms contribute to the molecular Hamiltonian.
 include_r: bool = True
 include_so: bool = True
 include_ss: bool = True
@@ -46,6 +55,11 @@ f_r, f_so, f_ss, f_sr, f_ld = map(int, [include_r, include_so, include_ss, inclu
 # MAX_N_POWER can be 2, 4, 6, 8, 10, or 12. Powers above 12 have no associated constants and
 # therefore will not contribute to the calculation.
 MAX_N_POWER: int = 2
+# Specify the maximum power of N used when evaluating anticommutators. A value of 0 will skip the
+# evaluation of all anticommutators.
+MAX_N_ACOMM_POWER: int = 0
+
+MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
 LAMBDA_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
 
 
@@ -278,41 +292,18 @@ def h_spin_orbit(
 
         # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
         for k in range(len(basis_fns)):
-            # ⟨i|A_D/2[N^2, LzSz]+|j⟩ = A_D/2[⟨i|N^2(LzSz)|j⟩ + ⟨i|(LzSz)N^2|j⟩]
-            #                         = A_D/2(∑_k⟨i|N^2|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^2|j⟩)
-            #                         = A_D/2[(N^2)_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^2)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * A_D
-                * (n_op_mats[0][i, k] * mel_lzsz(k, j) + mel_lzsz(i, k) * n_op_mats[0][k, j])
-            )
-
-            # ⟨i|A_H/2[N^4, LzSz]+|j⟩ = A_H/2[⟨i|N^4(LzSz)|j⟩ + ⟨i|(LzSz)N^4|j⟩]
-            #                         = A_H/2(∑_k⟨i|N^4|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^4|j⟩)
-            #                         = A_H/2[(N^4)_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^4)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * A_H
-                * (n_op_mats[1][i, k] * mel_lzsz(k, j) + mel_lzsz(i, k) * n_op_mats[1][k, j])
-            )
-
-            # ⟨i|A_L/2[N^6, LzSz]+|j⟩ = A_L/2[⟨i|N^6(LzSz)|j⟩ + ⟨i|(LzSz)N^6|j⟩]
-            #                         = A_L/2(∑_k⟨i|N^6|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^6|j⟩)
-            #                         = A_L/2[(N^6)_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^6)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * A_L
-                * (n_op_mats[2][i, k] * mel_lzsz(k, j) + mel_lzsz(i, k) * n_op_mats[2][k, j])
-            )
-
-            # ⟨i|A_M/2[N^8, LzSz]+|j⟩ = A_M/2[⟨i|N^8(LzSz)|j⟩ + ⟨i|(LzSz)N^8|j⟩]
-            #                         = A_M/2(∑_k⟨i|N^8|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^8|j⟩)
-            #                         = A_M/2[(N^8)_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^8)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * A_M
-                * (n_op_mats[3][i, k] * mel_lzsz(k, j) + mel_lzsz(i, k) * n_op_mats[3][k, j])
-            )
+            # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
+            #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
+            #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
+            for idx, const in enumerate(SPIN_ORBIT_CD_CONSTS[:MAX_ACOMM_INDEX]):
+                result += (
+                    safe_rational(1, 2)
+                    * const
+                    * (
+                        n_op_mats[idx][i, k] * mel_lzsz(k, j)
+                        + mel_lzsz(i, k) * n_op_mats[idx][k, j]
+                    )
+                )
 
         # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
         if s_qn > 1:
@@ -380,25 +371,19 @@ def h_spin_spin(
 
         # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for k in range(len(basis_fns)):
-            # ⟨i|λ_D/3[(3Sz^2 - S^2), N^2]+|j⟩
-            #   = λ_D/3[⟨i|(3Sz^2 - S^2)N^2|j⟩ + ⟨i|N^2(3Sz^2 - S^2)|j⟩]
-            #   = λ_D/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
-            #   = λ_D/3[(3Sz^2 - S^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(3Sz^2 - S^2)_{kj}]
-            result += (
-                safe_rational(1, 3)
-                * lambda_D
-                * (mel_sz2ms2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_sz2ms2(k, j))
-            )
-
-            # ⟨i|λ_H/3[(3Sz^2 - S^2), N^4]+|j⟩
-            #   = λ_H/3[⟨i|(3Sz^2 - S^2)N^4|j⟩ + ⟨i|N^4(3Sz^2 - S^2)|j⟩]
-            #   = λ_H/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
-            #   = λ_H/3[(3Sz^2 - S^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(3Sz^2 - S^2)_{kj}]
-            result += (
-                safe_rational(1, 3)
-                * lambda_H
-                * (mel_sz2ms2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_sz2ms2(k, j))
-            )
+            # ⟨i|λ_x/3[(3Sz^2 - S^2), N^{2n}]+|j⟩
+            #   = λ_x/3[⟨i|(3Sz^2 - S^2)N^{2n}|j⟩ + ⟨i|N^{2n}(3Sz^2 - S^2)|j⟩]
+            #   = λ_x/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
+            #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
+            for idx, const in enumerate(SPIN_SPIN_CD_CONSTS[:MAX_ACOMM_INDEX]):
+                result += (
+                    safe_rational(1, 3)
+                    * const
+                    * (
+                        mel_sz2ms2(i, k) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel_sz2ms2(k, j)
+                    )
+                )
 
         # θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4) term only valid for states with S > 3/2.
         if i == j and s_qn > safe_rational(3, 2):
@@ -484,32 +469,18 @@ def h_spin_rotation(
 
         # γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
         for k in range(len(basis_fns)):
-            # ⟨i|γ_D/2[N·S, N^2]+|j⟩ = γ_D/2[⟨i|(N·S)N^2|j⟩ + ⟨i|N^2(N·S)|j⟩]
-            #                        = γ_D/2(∑_k⟨i|N·S|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|N·S|j⟩)
-            #                        = γ_D/2[(N·S)_{ik}(N^2)_{kj} + (N^2)_{ik}(N·S)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * gamma_D
-                * (mel_ndots(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_ndots(k, j))
-            )
-
-            # ⟨i|γ_H/2[N·S, N^4]+|j⟩ = γ_H/2[⟨i|(N·S)N^4|j⟩ + ⟨i|N^4(N·S)|j⟩]
-            #                        = γ_H/2(∑_k⟨i|N·S|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|N·S|j⟩)
-            #                        = γ_H/2[(N·S)_{ik}(N^4)_{kj} + (N^4)_{ik}(N·S)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * gamma_H
-                * (mel_ndots(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_ndots(k, j))
-            )
-
-            # ⟨i|γ_L/2[N·S, N^6]+|j⟩ = γ_L/2[⟨i|(N·S)N^6|j⟩ + ⟨i|N^6(N·S)|j⟩]
-            #                        = γ_L/2(∑_k⟨i|N·S|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|N·S|j⟩)
-            #                        = γ_L/2[(N·S)_{ik}(N^6)_{kj} + (N^6)_{ik}(N·S)_{kj}]
-            result += (
-                safe_rational(1, 2)
-                * gamma_L
-                * (mel_ndots(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_ndots(k, j))
-            )
+            # ⟨i|γ_x/2[N·S, N^{2n}]+|j⟩ = γ_x/2[⟨i|(N·S)N^{2n}|j⟩ + ⟨i|N^{2n}(N·S)|j⟩]
+            #                           = γ_x/2(∑_k⟨i|N·S|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|N·S|j⟩)
+            #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
+            for idx, const in enumerate(SPIN_ROTATION_CD_CONSTS[:MAX_ACOMM_INDEX]):
+                result += (
+                    safe_rational(1, 2)
+                    * const
+                    * (
+                        mel_ndots(i, k) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel_ndots(k, j)
+                    )
+                )
 
         # -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)} term only valid for states with S > 1.
         if s_qn > 1:
@@ -666,104 +637,47 @@ def h_lambda_doubling(
         #   + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
         #   + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
         for k in range(len(basis_fns)):
-            # ⟨i|[0.25(o_D + p_D + q_D)(S+^2 + S-^2), N^2]+|j⟩
-            #   = 0.25(o_D + p_D + q_D)[⟨i|(S+^2 + S-^2)N^2|j⟩ + ⟨i|N^2(S+^2 + S-^2)|j⟩]
-            #   = 0.25(o_D + p_D + q_D)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|S+^2 + S-^2|j⟩)
-            #   = 0.25(o_D + p_D + q_D)[(S+^2 + S-^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(S+^2 + S-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * (o_D + p_D + q_D)
-                * (mel_sp2_sm2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_sp2_sm2(k, j))
-            )
-
-            # ⟨i|[-0.25(p_D + 2 * q_D)(J+S+ + J-S-), N^2]+|j⟩
-            #   = -0.25(p_D + 2 * q_D)[⟨i|(J+S+ + J-S-)N^2|j⟩ + ⟨i|N^2(J+S+ + J-S-)|j⟩]
-            #   = -0.25(p_D + 2 * q_D)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|J+S+ + J-S-|j⟩)
-            #   = -0.25(p_D + 2 * q_D)[(J+S+ + J-S-)_{ik}(N^2)_{kj} + (N^2)_{ik}(J+S+ + J-S-)_{kj}]
-            result += (
-                -safe_rational(1, 4)
-                * (p_D + 2 * q_D)
-                * (
-                    mel_jpsp_jmsm(i, k) * n_op_mats[0][k, j]
-                    + n_op_mats[0][i, k] * mel_jpsp_jmsm(k, j)
+            # ⟨i|[0.25(o_x + p_x + q_x)(S+^2 + S-^2), N^{2n}]+|j⟩
+            #   = 0.25(o_x + p_x + q_x)[⟨i|(S+^2 + S-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(S+^2 + S-^2)|j⟩]
+            #   = 0.25(o_x + p_x + q_x)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|S+^2 + S-^2|j⟩)
+            #   = 0.25(o_x + p_x + q_x)[(S+^2 + S-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(S+^2 + S-^2)_{kj}]
+            for idx, const in enumerate(LAMBDA_DOUBLING_CD_CONSTS_OPQ[:MAX_ACOMM_INDEX]):
+                result += (
+                    safe_rational(1, 4)
+                    * const
+                    * (
+                        mel_sp2_sm2(i, k) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel_sp2_sm2(k, j)
+                    )
                 )
-            )
 
-            # ⟨i|[0.25 * q_D(J+^2 + J-^2), N^2]+|j⟩
-            #   = 0.25 * q_D[⟨i|(J+^2 + J-^2)N^2|j⟩ + ⟨i|N^2(J+^2 + J-^2)|j⟩]
-            #   = 0.25 * q_D(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|J+^2 + J-^2|j⟩)
-            #   = 0.25 * q_D[(J+^2 + J-^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(J+^2 + J-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * q_D
-                * (mel_jp2_jm2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_jp2_jm2(k, j))
-            )
-
-            # ⟨i|[0.25(o_H + p_H + q_H)(S+^2 + S-^2), N^4]+|j⟩
-            #   = 0.25(o_H + p_H + q_H)[⟨i|(S+^2 + S-^2)N^4|j⟩ + ⟨i|N^4(S+^2 + S-^2)|j⟩]
-            #   = 0.25(o_H + p_H + q_H)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|S+^2 + S-^2|j⟩)
-            #   = 0.25(o_H + p_H + q_H)[(S+^2 + S-^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(S+^2 + S-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * (o_H + p_H + q_H)
-                * (mel_sp2_sm2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_sp2_sm2(k, j))
-            )
-
-            # ⟨i|[-0.25(p_H + 2 * q_H)(J+S+ + J-S-), N^4]+|j⟩
-            #   = -0.25(p_H + 2 * q_H)[⟨i|(J+S+ + J-S-)N^4|j⟩ + ⟨i|N^4(J+S+ + J-S-)|j⟩]
-            #   = -0.25(p_H + 2 * q_H)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|J+S+ + J-S-|j⟩)
-            #   = -0.25(p_H + 2 * q_H)[(J+S+ + J-S-)_{ik}(N^4)_{kj} + (N^4)_{ik}(J+S+ + J-S-)_{kj}]
-            result += (
-                -safe_rational(1, 4)
-                * (p_H + 2 * q_H)
-                * (
-                    mel_jpsp_jmsm(i, k) * n_op_mats[1][k, j]
-                    + n_op_mats[1][i, k] * mel_jpsp_jmsm(k, j)
+            # ⟨i|[-0.25(p_x + 2 * q_x)(J+S+ + J-S-), N^{2n}]+|j⟩
+            #   = -0.25(p_x + 2 * q_x)[⟨i|(J+S+ + J-S-)N^{2n}|j⟩ + ⟨i|N^{2n}(J+S+ + J-S-)|j⟩]
+            #   = -0.25(p_x + 2 * q_x)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+S+ + J-S-|j⟩)
+            #   = -0.25(p_x + 2 * q_x)[(J+S+ + J-S-)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+S+ + J-S-)_{kj}]
+            for idx, const in enumerate(LAMBDA_DOUBLING_CD_CONSTS_PQ[:MAX_ACOMM_INDEX]):
+                result += (
+                    -safe_rational(1, 4)
+                    * const
+                    * (
+                        mel_jpsp_jmsm(i, k) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel_jpsp_jmsm(k, j)
+                    )
                 )
-            )
 
-            # ⟨i|[0.25 * q_H(J+^2 + J-^2), N^4]+|j⟩
-            #   = 0.25 * q_H[⟨i|(J+^2 + J-^2)N^4|j⟩ + ⟨i|N^4(J+^2 + J-^2)|j⟩]
-            #   = 0.25 * q_H(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|J+^2 + J-^2|j⟩)
-            #   = 0.25 * q_H[(J+^2 + J-^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(J+^2 + J-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * q_H
-                * (mel_jp2_jm2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_jp2_jm2(k, j))
-            )
-
-            # ⟨i|[0.25(o_L + p_L + q_L)(S+^2 + S-^2), N^6]+|j⟩
-            #   = 0.25(o_L + p_L + q_L)[⟨i|(S+^2 + S-^2)N^6|j⟩ + ⟨i|N^6(S+^2 + S-^2)|j⟩]
-            #   = 0.25(o_L + p_L + q_L)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|S+^2 + S-^2|j⟩)
-            #   = 0.25(o_L + p_L + q_L)[(S+^2 + S-^2)_{ik}(N^6)_{kj} + (N^6)_{ik}(S+^2 + S-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * (o_L + p_L + q_L)
-                * (mel_sp2_sm2(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_sp2_sm2(k, j))
-            )
-
-            # ⟨i|[-0.25(p_L + 2 * q_L)(J+S+ + J-S-), N^6]+|j⟩
-            #   = -0.25(p_L + 2 * q_L)[⟨i|(J+S+ + J-S-)N^6|j⟩ + ⟨i|N^6(J+S+ + J-S-)|j⟩]
-            #   = -0.25(p_L + 2 * q_L)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|J+S+ + J-S-|j⟩)
-            #   = -0.25(p_L + 2 * q_L)[(J+S+ + J-S-)_{ik}(N^6)_{kj} + (N^6)_{ik}(J+S+ + J-S-)_{kj}]
-            result += (
-                -safe_rational(1, 4)
-                * (p_L + 2 * q_L)
-                * (
-                    mel_jpsp_jmsm(i, k) * n_op_mats[2][k, j]
-                    + n_op_mats[2][i, k] * mel_jpsp_jmsm(k, j)
+            # ⟨i|[0.25 * q_x(J+^2 + J-^2), N^{2n}]+|j⟩
+            #   = 0.25 * q_x[⟨i|(J+^2 + J-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(J+^2 + J-^2)|j⟩]
+            #   = 0.25 * q_x(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+^2 + J-^2|j⟩)
+            #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
+            for idx, const in enumerate(LAMBDA_DOUBLING_CD_CONSTS_Q[:MAX_ACOMM_INDEX]):
+                result += (
+                    safe_rational(1, 4)
+                    * const
+                    * (
+                        mel_jp2_jm2(i, k) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel_jp2_jm2(k, j)
+                    )
                 )
-            )
-
-            # ⟨i|[0.25 * q_L(J+^2 + J-^2), N^6]+|j⟩
-            #   = 0.25 * q_L[⟨i|(J+^2 + J-^2)N^6|j⟩ + ⟨i|N^6(J+^2 + J-^2)|j⟩]
-            #   = 0.25 * q_L(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|J+^2 + J-^2|j⟩)
-            #   = 0.25 * q_L[(J+^2 + J-^2)_{ik}(N^6)_{kj} + (N^6)_{ik}(J+^2 + J-^2)_{kj}]
-            result += (
-                safe_rational(1, 4)
-                * q_L
-                * (mel_jp2_jm2(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_jp2_jm2(k, j))
-            )
 
     return result
 
