@@ -276,6 +276,7 @@ def h_spin_orbit(
         # A(LzSz)
         result += A * mel_lzsz(i, j)
 
+        # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
         for k in range(len(basis_fns)):
             # ⟨i|A_D/2[N^2, LzSz]+|j⟩ = A_D/2[⟨i|N^2(LzSz)|j⟩ + ⟨i|(LzSz)N^2|j⟩]
             #                         = A_D/2(∑_k⟨i|N^2|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^2|j⟩)
@@ -313,7 +314,7 @@ def h_spin_orbit(
                 * (n_op_mats[3][i, k] * mel_lzsz(k, j) + mel_lzsz(i, k) * n_op_mats[3][k, j])
             )
 
-        # Term only valid for states with S > 1.
+        # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
         if s_qn > 1:
             # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
             result += (
@@ -377,26 +378,29 @@ def h_spin_spin(
         # 2λ/3(3Sz^2 - S^2)
         result += safe_rational(2, 3) * lamda * mel_sz2ms2(i, j)
 
+        # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for k in range(len(basis_fns)):
-            # ⟨i|λ_D/3[(3Sz^2 - S^2), N^2]+|j⟩ = λ_D/3[⟨i|(3Sz^2 - S^2)N^2|j⟩ + ⟨i|N^2(3Sz^2 - S^2)|j⟩]
-            #                                  = λ_D/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
-            #                                  = λ_D/3[(3Sz^2 - S^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(3Sz^2 - S^2)_{kj}]
+            # ⟨i|λ_D/3[(3Sz^2 - S^2), N^2]+|j⟩
+            #   = λ_D/3[⟨i|(3Sz^2 - S^2)N^2|j⟩ + ⟨i|N^2(3Sz^2 - S^2)|j⟩]
+            #   = λ_D/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
+            #   = λ_D/3[(3Sz^2 - S^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(3Sz^2 - S^2)_{kj}]
             result += (
                 safe_rational(1, 3)
                 * lambda_D
                 * (mel_sz2ms2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_sz2ms2(k, j))
             )
 
-            # ⟨i|λ_H/3[(3Sz^2 - S^2), N^4]+|j⟩ = λ_H/3[⟨i|(3Sz^2 - S^2)N^4|j⟩ + ⟨i|N^4(3Sz^2 - S^2)|j⟩]
-            #                                  = λ_H/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
-            #                                  = λ_H/3[(3Sz^2 - S^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(3Sz^2 - S^2)_{kj}]
+            # ⟨i|λ_H/3[(3Sz^2 - S^2), N^4]+|j⟩
+            #   = λ_H/3[⟨i|(3Sz^2 - S^2)N^4|j⟩ + ⟨i|N^4(3Sz^2 - S^2)|j⟩]
+            #   = λ_H/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
+            #   = λ_H/3[(3Sz^2 - S^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(3Sz^2 - S^2)_{kj}]
             result += (
                 safe_rational(1, 3)
                 * lambda_H
                 * (mel_sz2ms2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_sz2ms2(k, j))
             )
 
-        # Term only valid for states with S > 3/2.
+        # θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4) term only valid for states with S > 3/2.
         if i == j and s_qn > safe_rational(3, 2):
             # ⟨S, Σ|θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)|S, Σ⟩
             #   = θ/12(35Σ^4 - 30S(S + 1)Σ^2 + 25Σ^2 - 6S(S + 1) + 3[S(S + 1)]^2)
@@ -478,6 +482,7 @@ def h_spin_rotation(
         # γ(N·S)
         result += gamma * mel_ndots(i, j)
 
+        # γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
         for k in range(len(basis_fns)):
             # ⟨i|γ_D/2[N·S, N^2]+|j⟩ = γ_D/2[⟨i|(N·S)N^2|j⟩ + ⟨i|N^2(N·S)|j⟩]
             #                        = γ_D/2(∑_k⟨i|N·S|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|N·S|j⟩)
@@ -506,7 +511,7 @@ def h_spin_rotation(
                 * (mel_ndots(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_ndots(k, j))
             )
 
-        # Term only valid for states with S > 1.
+        # -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)} term only valid for states with S > 1.
         if s_qn > 1:
             # ⟨J, S, Ω + 1, Σ + 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
             #   = -γ_S/2[S(S + 1) - 5Σ(Σ + 1) + 2]([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
@@ -534,68 +539,233 @@ def h_spin_rotation(
 
 
 def h_lambda_doubling(
-    i: int, j: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational
+    i: int,
+    j: int,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
+    n_op_mats: list[sp.MutableDenseMatrix],
 ) -> sp.Expr:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
-    H_ld = 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2).
+    H_ld = 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2)
+        + 0.25(o_D + p_D + q_D)[S+^2 + S-^2, N^2]+ - 0.25(p_D + 2 * q_D)[J+S+ + J-S-, N^2]+ + q_D/4[J+^2 + J-^2, N^2]+
+        + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
+        + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+.
 
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
         basis_fns (list[tuple[int, sp.Rational, sp.Rational]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (sp.Rational): Quantum number S
+        n_op_mats (list[sp.MutableDenseMatrix]): N operator matrices
 
     Returns:
-        sp.Expr: Matrix elements for 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-)
-            + q/2(J+^2 + J-^2)
+        sp.Expr: Matrix elements for 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2)
+            + 0.25(o_D + p_D + q_D)[S+^2 + S-^2, N^2]+ - 0.25(p_D + 2 * q_D)[J+S+ + J-S-, N^2]+ + q_D/4[J+^2 + J-^2, N^2]+
+            + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
+            + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
 
     """
-    # TODO: 25/06/06 - In the future, evaluate the lambda doubling commutators explicitly as in
-    #       all the other terms to account for centrifugal distortion terms.
-    lambda_qn_i, sigma_qn_i, omega_qn_i = basis_fns[i]
-    lambda_qn_j, sigma_qn_j, omega_qn_j = basis_fns[j]
+    lambda_qn_i = basis_fns[i][0]
+    lambda_qn_j = basis_fns[j][0]
 
-    # Lambda doubling is only defined for Λ ± 2 transitions.
-    if abs(lambda_qn_i - lambda_qn_j) != 2:
+    result: sp.Expr = sp.S.Zero
+
+    def mel_sp2_sm2(m: int, n: int) -> sp.Expr:
+        """Return matrix elements for the S+^2 + S-^2 operator.
+
+        Args:
+            m (int): Dummy index m for the bra vector (row)
+            n (int): Dummy index n for the ket vector (col)
+
+        Returns:
+            sp.Expr: Matrix elements for S+^2 + S-^2
+        """
+        lambda_qn_m, sigma_qn_m, _ = basis_fns[m]
+        lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
+
+        # ⟨Λ - 2, Σ + 2|S+^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
+        if lambda_qn_m == lambda_qn_n - 2 and sigma_qn_m == sigma_qn_n + 2:
+            return mel_sp(s_qn, sigma_qn_n) * mel_sp(s_qn, sigma_qn_n + 1)
+
+        # ⟨Λ + 2, Σ - 2|S-^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
+        if lambda_qn_m == lambda_qn_n + 2 and sigma_qn_m == sigma_qn_n - 2:
+            return mel_sm(s_qn, sigma_qn_n) * mel_sm(s_qn, sigma_qn_n - 1)
+
         return sp.S.Zero
 
-    # ⟨Σ + 2|S+^2|Σ⟩ = 0.5(o + p + q)([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
-    if lambda_qn_i == lambda_qn_j - 2 and sigma_qn_i == sigma_qn_j + 2:
-        return 0.5 * (o + p + q) * mel_sp(s_qn, sigma_qn_j) * mel_sp(s_qn, sigma_qn_j + 1)
+    def mel_jpsp_jmsm(m: int, n: int) -> sp.Expr:
+        """Return matrix elements for the J+S+ + J-S- operator.
 
-    # ⟨Σ - 2|S-^2|Σ⟩ = 0.5(o + p + q)([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
-    if lambda_qn_i == lambda_qn_j + 2 and sigma_qn_i == sigma_qn_j - 2:
-        return 0.5 * (o + p + q) * mel_sm(s_qn, sigma_qn_j) * mel_sm(s_qn, sigma_qn_j - 1)
+        Args:
+            m (int): Dummy index m for the bra vector (row)
+            n (int): Dummy index n for the ket vector (col)
 
-    # ⟨Ω - 1, Σ + 1|J+S+|Ω, Σ⟩ = -0.5(p + 2q)([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    if (
-        lambda_qn_i == lambda_qn_j - 2
-        and sigma_qn_i == sigma_qn_j + 1
-        and omega_qn_i == omega_qn_j - 1
-    ):
-        return -0.5 * (p + 2 * q) * mel_jp(j_qn, omega_qn_j) * mel_sp(s_qn, sigma_qn_j)
+        Returns:
+            sp.Expr: Matrix elements for J+S+ + J-S-
+        """
+        lambda_qn_m, sigma_qn_m, omega_qn_m = basis_fns[m]
+        lambda_qn_n, sigma_qn_n, omega_qn_n = basis_fns[n]
 
-    # ⟨Ω + 1, Σ - 1|J-S-|Ω, Σ⟩ = -0.5(p + 2q)([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    if (
-        lambda_qn_i == lambda_qn_j + 2
-        and sigma_qn_i == sigma_qn_j - 1
-        and omega_qn_i == omega_qn_j + 1
-    ):
-        return -0.5 * (p + 2 * q) * mel_jm(j_qn, omega_qn_j) * mel_sm(s_qn, sigma_qn_j)
+        # ⟨Λ - 2, Ω - 1, Σ + 1|J+S+|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+        if (
+            lambda_qn_m == lambda_qn_n - 2
+            and sigma_qn_m == sigma_qn_n + 1
+            and omega_qn_m == omega_qn_n - 1
+        ):
+            return mel_jp(j_qn, omega_qn_n) * mel_sp(s_qn, sigma_qn_n)
 
-    # NOTE: 25/05/29 - The Ω - 1 being plugged into the second J+ matrix element occurs since J is
-    #       an anomalously commutative operator.
-    # ⟨Ω - 2|J+^2|Ω⟩ = 0.5 * q([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
-    if lambda_qn_i == lambda_qn_j - 2 and omega_qn_i == omega_qn_j - 2:
-        return 0.5 * q * mel_jp(j_qn, omega_qn_j) * mel_jp(j_qn, omega_qn_j - 1)
+        # ⟨Λ + 2, Ω + 1, Σ - 1|J-S-|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+        if (
+            lambda_qn_m == lambda_qn_n + 2
+            and sigma_qn_m == sigma_qn_n - 1
+            and omega_qn_m == omega_qn_n + 1
+        ):
+            return mel_jm(j_qn, omega_qn_n) * mel_sm(s_qn, sigma_qn_n)
 
-    # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
-    # ⟨Ω + 2|J-^2|Ω⟩ = 0.5 * q([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
-    if lambda_qn_i == lambda_qn_j + 2 and omega_qn_i == omega_qn_j + 2:
-        return 0.5 * q * mel_jm(j_qn, omega_qn_j) * mel_jm(j_qn, omega_qn_j + 1)
+        return sp.S.Zero
 
-    return sp.S.Zero
+    def mel_jp2_jm2(m: int, n: int) -> sp.Expr:
+        """Return matrix elements for the J+^2 + J-^2 operator.
+
+        Args:
+            m (int): Dummy index m for the bra vector (row)
+            n (int): Dummy index n for the ket vector (col)
+
+        Returns:
+            sp.Expr: Matrix elements for J+^2 + J-^2
+        """
+        lambda_qn_m, _, omega_qn_m = basis_fns[m]
+        lambda_qn_n, _, omega_qn_n = basis_fns[n]
+
+        # NOTE: 25/05/29 - The Ω - 1 being plugged into the second J+ matrix element occurs since J
+        #       is an anomalously commutative operator.
+        # ⟨Λ - 2, Ω - 2|J+^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
+        if lambda_qn_m == lambda_qn_n - 2 and omega_qn_m == omega_qn_n - 2:
+            return mel_jp(j_qn, omega_qn_n) * mel_jp(j_qn, omega_qn_n - 1)
+
+        # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
+        # ⟨Λ + 2, Ω + 2|J-^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
+        if lambda_qn_m == lambda_qn_n + 2 and omega_qn_m == omega_qn_n + 2:
+            return mel_jm(j_qn, omega_qn_n) * mel_jm(j_qn, omega_qn_n + 1)
+
+        return sp.S.Zero
+
+    # Lambda doubling is only defined for Λ ± 2 transitions.
+    if abs(lambda_qn_i - lambda_qn_j) == 2:
+        # 0.5(o + p + q)(S+^2 + S-^2)
+        result += safe_rational(1, 2) * (o + p + q) * mel_sp2_sm2(i, j)
+
+        # -0.5(p + 2q)(J+S+ + J-S-)
+        result += -safe_rational(1, 2) * (p + 2 * q) * mel_jpsp_jmsm(i, j)
+
+        # q/2(J+^2 + J-^2)
+        result += safe_rational(1, 2) * q * mel_jp2_jm2(i, j)
+
+        # 0.25(o_D + p_D + q_D)[S+^2 + S-^2, N^2]+ - 0.25(p_D + 2 * q_D)[J+S+ + J-S-, N^2]+ + q_D/4[J+^2 + J-^2, N^2]+
+        #   + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
+        #   + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
+        for k in range(len(basis_fns)):
+            # ⟨i|[0.25(o_D + p_D + q_D)(S+^2 + S-^2), N^2]+|j⟩
+            #   = 0.25(o_D + p_D + q_D)[⟨i|(S+^2 + S-^2)N^2|j⟩ + ⟨i|N^2(S+^2 + S-^2)|j⟩]
+            #   = 0.25(o_D + p_D + q_D)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|S+^2 + S-^2|j⟩)
+            #   = 0.25(o_D + p_D + q_D)[(S+^2 + S-^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(S+^2 + S-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * (o_D + p_D + q_D)
+                * (mel_sp2_sm2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_sp2_sm2(k, j))
+            )
+
+            # ⟨i|[-0.25(p_D + 2 * q_D)(J+S+ + J-S-), N^2]+|j⟩
+            #   = -0.25(p_D + 2 * q_D)[⟨i|(J+S+ + J-S-)N^2|j⟩ + ⟨i|N^2(J+S+ + J-S-)|j⟩]
+            #   = -0.25(p_D + 2 * q_D)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|J+S+ + J-S-|j⟩)
+            #   = -0.25(p_D + 2 * q_D)[(J+S+ + J-S-)_{ik}(N^2)_{kj} + (N^2)_{ik}(J+S+ + J-S-)_{kj}]
+            result += (
+                -safe_rational(1, 4)
+                * (p_D + 2 * q_D)
+                * (
+                    mel_jpsp_jmsm(i, k) * n_op_mats[0][k, j]
+                    + n_op_mats[0][i, k] * mel_jpsp_jmsm(k, j)
+                )
+            )
+
+            # ⟨i|[0.25 * q_D(J+^2 + J-^2), N^2]+|j⟩
+            #   = 0.25 * q_D[⟨i|(J+^2 + J-^2)N^2|j⟩ + ⟨i|N^2(J+^2 + J-^2)|j⟩]
+            #   = 0.25 * q_D(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^2|j⟩ + ∑_k⟨i|N^2|k⟩⟨k|J+^2 + J-^2|j⟩)
+            #   = 0.25 * q_D[(J+^2 + J-^2)_{ik}(N^2)_{kj} + (N^2)_{ik}(J+^2 + J-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * q_D
+                * (mel_jp2_jm2(i, k) * n_op_mats[0][k, j] + n_op_mats[0][i, k] * mel_jp2_jm2(k, j))
+            )
+
+            # ⟨i|[0.25(o_H + p_H + q_H)(S+^2 + S-^2), N^4]+|j⟩
+            #   = 0.25(o_H + p_H + q_H)[⟨i|(S+^2 + S-^2)N^4|j⟩ + ⟨i|N^4(S+^2 + S-^2)|j⟩]
+            #   = 0.25(o_H + p_H + q_H)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|S+^2 + S-^2|j⟩)
+            #   = 0.25(o_H + p_H + q_H)[(S+^2 + S-^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(S+^2 + S-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * (o_H + p_H + q_H)
+                * (mel_sp2_sm2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_sp2_sm2(k, j))
+            )
+
+            # ⟨i|[-0.25(p_H + 2 * q_H)(J+S+ + J-S-), N^4]+|j⟩
+            #   = -0.25(p_H + 2 * q_H)[⟨i|(J+S+ + J-S-)N^4|j⟩ + ⟨i|N^4(J+S+ + J-S-)|j⟩]
+            #   = -0.25(p_H + 2 * q_H)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|J+S+ + J-S-|j⟩)
+            #   = -0.25(p_H + 2 * q_H)[(J+S+ + J-S-)_{ik}(N^4)_{kj} + (N^4)_{ik}(J+S+ + J-S-)_{kj}]
+            result += (
+                -safe_rational(1, 4)
+                * (p_H + 2 * q_H)
+                * (
+                    mel_jpsp_jmsm(i, k) * n_op_mats[1][k, j]
+                    + n_op_mats[1][i, k] * mel_jpsp_jmsm(k, j)
+                )
+            )
+
+            # ⟨i|[0.25 * q_H(J+^2 + J-^2), N^4]+|j⟩
+            #   = 0.25 * q_H[⟨i|(J+^2 + J-^2)N^4|j⟩ + ⟨i|N^4(J+^2 + J-^2)|j⟩]
+            #   = 0.25 * q_H(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^4|j⟩ + ∑_k⟨i|N^4|k⟩⟨k|J+^2 + J-^2|j⟩)
+            #   = 0.25 * q_H[(J+^2 + J-^2)_{ik}(N^4)_{kj} + (N^4)_{ik}(J+^2 + J-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * q_H
+                * (mel_jp2_jm2(i, k) * n_op_mats[1][k, j] + n_op_mats[1][i, k] * mel_jp2_jm2(k, j))
+            )
+
+            # ⟨i|[0.25(o_L + p_L + q_L)(S+^2 + S-^2), N^6]+|j⟩
+            #   = 0.25(o_L + p_L + q_L)[⟨i|(S+^2 + S-^2)N^6|j⟩ + ⟨i|N^6(S+^2 + S-^2)|j⟩]
+            #   = 0.25(o_L + p_L + q_L)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|S+^2 + S-^2|j⟩)
+            #   = 0.25(o_L + p_L + q_L)[(S+^2 + S-^2)_{ik}(N^6)_{kj} + (N^6)_{ik}(S+^2 + S-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * (o_L + p_L + q_L)
+                * (mel_sp2_sm2(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_sp2_sm2(k, j))
+            )
+
+            # ⟨i|[-0.25(p_L + 2 * q_L)(J+S+ + J-S-), N^6]+|j⟩
+            #   = -0.25(p_L + 2 * q_L)[⟨i|(J+S+ + J-S-)N^6|j⟩ + ⟨i|N^6(J+S+ + J-S-)|j⟩]
+            #   = -0.25(p_L + 2 * q_L)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|J+S+ + J-S-|j⟩)
+            #   = -0.25(p_L + 2 * q_L)[(J+S+ + J-S-)_{ik}(N^6)_{kj} + (N^6)_{ik}(J+S+ + J-S-)_{kj}]
+            result += (
+                -safe_rational(1, 4)
+                * (p_L + 2 * q_L)
+                * (
+                    mel_jpsp_jmsm(i, k) * n_op_mats[2][k, j]
+                    + n_op_mats[2][i, k] * mel_jpsp_jmsm(k, j)
+                )
+            )
+
+            # ⟨i|[0.25 * q_L(J+^2 + J-^2), N^6]+|j⟩
+            #   = 0.25 * q_L[⟨i|(J+^2 + J-^2)N^6|j⟩ + ⟨i|N^6(J+^2 + J-^2)|j⟩]
+            #   = 0.25 * q_L(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^6|j⟩ + ∑_k⟨i|N^6|k⟩⟨k|J+^2 + J-^2|j⟩)
+            #   = 0.25 * q_L[(J+^2 + J-^2)_{ik}(N^6)_{kj} + (N^6)_{ik}(J+^2 + J-^2)_{kj}]
+            result += (
+                safe_rational(1, 4)
+                * q_L
+                * (mel_jp2_jm2(i, k) * n_op_mats[2][k, j] + n_op_mats[2][i, k] * mel_jp2_jm2(k, j))
+            )
+
+    return result
 
 
 def build_hamiltonian(
@@ -622,7 +792,7 @@ def build_hamiltonian(
                 + f_so * h_spin_orbit(i, j, basis_fns, s_qn, n_op_mats)
                 + f_ss * h_spin_spin(i, j, basis_fns, s_qn, n_op_mats)
                 + f_sr * h_spin_rotation(i, j, basis_fns, s_qn, n_op_mats)
-                + f_ld * h_lambda_doubling(i, j, basis_fns, s_qn)
+                + f_ld * h_lambda_doubling(i, j, basis_fns, s_qn, n_op_mats)
             )
 
     return h_mat
