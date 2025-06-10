@@ -851,7 +851,7 @@ def main() -> None:
                 rf"\item $\lvert {fsn(lam, tex=True)},\,{fsn(sig, tex=True)},\,{fsn(ome, tex=True)}\rangle$"
             )
 
-        lines = [
+        lines: list[str] = [
             r"\documentclass[12pt]{article}",
             r"\usepackage[margin=0.25in]{geometry}",
             r"\usepackage{amsmath,amssymb,bm,parskip}",
@@ -884,7 +884,7 @@ def main() -> None:
         ]
 
         for idx, eigenval in enumerate(eigenval_list, start=1):
-            lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval.simplify())} \\")
+            lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval)} \\")
 
         lines += [r"\end{aligned}", r"$}", r"\end{equation*}", "", r"\end{document}"]
 
