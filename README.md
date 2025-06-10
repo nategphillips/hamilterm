@@ -4,10 +4,12 @@ Symbolically computes the rotational Hamiltonian for a given molecular term symb
 
 ## Example Output
 
+Sample output for a $^2\Sigma$ state is shown below. See `./docs/main.pdf` to avoid GitHub's poor excuse for $\LaTeX$ formatting.
+
 **Info:**
 
-- Computed up to $\bm{N}^4$
-- Max anticommutator value $\bm{N}^2$
+- Computed up to $\mathbf{N}^4$
+- Max anticommutator value $\mathbf{N}^2$
 
 **Term symbol:**
 
@@ -21,7 +23,8 @@ Symbolically computes the rotational Hamiltonian for a given molecular term symb
 **Hamiltonian matrix:**
 
 $$
-\begin{bmatrix}B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16}\\\frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}\end{bmatrix}
+\begin{bmatrix}B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} \\
+\frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}\end{bmatrix}
 $$
 
 **Eigenvalues:**
