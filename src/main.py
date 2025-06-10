@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import subprocess
 from typing import cast
 
 import sympy as sp
@@ -54,13 +55,18 @@ f_r, f_so, f_ss, f_sr, f_ld = map(int, [include_r, include_so, include_ss, inclu
 
 # MAX_N_POWER can be 2, 4, 6, 8, 10, or 12. Powers above 12 have no associated constants and
 # therefore will not contribute to the calculation.
-MAX_N_POWER: int = 2
+MAX_N_POWER: int = 4
 # Specify the maximum power of N used when evaluating anticommutators. A value of 0 will skip the
 # evaluation of all anticommutators.
-MAX_N_ACOMM_POWER: int = 0
+MAX_N_ACOMM_POWER: int = 2
+
+# Output to the terminal, LaTeX, or both.
+PRINT_TERM: bool = False
+PRINT_TEX: bool = True
 
 MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
-LAMBDA_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
+LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
+LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
 
 
 def mel_j2(j_qn: sp.Symbol) -> sp.Expr:
@@ -725,7 +731,7 @@ def parse_term_symbol(term_symbol: str) -> tuple[sp.Rational, int]:
     spin_multiplicity: int = int(term_symbol[0])
     s_qn: sp.Rational = safe_rational(spin_multiplicity - 1, 2)
     term: str = term_symbol[1:]
-    lambda_qn: int = LAMBDA_MAP[term]
+    lambda_qn: int = LAMBDA_INT_MAP[term]
 
     return s_qn, lambda_qn
 
@@ -782,7 +788,7 @@ def safe_rational(num: int, denom: int) -> sp.Rational:
     return cast("sp.Rational", r)
 
 
-def fsn(num: int | sp.Rational | sp.Expr) -> str:
+def fsn(num: int | sp.Rational | sp.Expr, tex: bool = False) -> str:
     """Format signed number for printing.
 
     Args:
@@ -797,6 +803,8 @@ def fsn(num: int | sp.Rational | sp.Expr) -> str:
     if num > 0:
         return f"+{s}"
     if num == 0:
+        if tex:
+            return rf"\pm{s}"
         return f"±{s}"
 
     return s
@@ -807,22 +815,87 @@ def main() -> None:
     term_symbol: str = "2Sigma"
 
     s_qn, lambda_qn = parse_term_symbol(term_symbol)
-    print("Term symbol:")
-    print(f"{term_symbol}: S={s_qn}, Λ={lambda_qn}")
-
-    print("\nBasis states |Λ, Σ, Ω>:")
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis_fns(s_qn, lambda_qn)
-    for state in basis_fns:
-        print(f"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
+    h_mat: sp.MutableDenseMatrix = (
+        build_hamiltonian(basis_fns, s_qn).subs(j_qn * (j_qn + 1), x).applyfunc(sp.simplify)
+    )
+    eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
+    eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
 
-    print("\nHamiltonian matrix:")
-    h_mat: sp.MutableDenseMatrix = build_hamiltonian(basis_fns, s_qn).subs(j_qn * (j_qn + 1), x)
-    sp.pprint(sp.nsimplify(h_mat))
+    if PRINT_TERM:
+        print("Info:")
+        print(f"Computed up to N^{MAX_N_POWER}, max anticommutator value N^{MAX_N_ACOMM_POWER}")
 
-    print("\nEigenvalues:")
-    eigenvals: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
-    for eigenvalue in eigenvals:
-        sp.pprint(sp.nsimplify(eigenvalue))
+        print("\nTerm symbol:")
+        print(f"{term_symbol[0]}{LAMBDA_STR_MAP[term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}")
+
+        print("\nBasis states |Λ, Σ, Ω>:")
+        for state in basis_fns:
+            print(rf"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
+
+        print("\nHamiltonian matrix:")
+        sp.pprint(h_mat)
+
+        print("\nEigenvalues:")
+        for eigenval in eigenval_list:
+            sp.pprint(eigenval)
+
+    if PRINT_TEX:
+        tex_info: str = rf"\textbf{{Info:}} Computed up to $\bm{{N}}^{MAX_N_POWER}$, max anticommutator value $\bm{{N}}^{MAX_N_ACOMM_POWER}$"
+        tex_term: str = rf"\textbf{{Term symbol:}} $^{term_symbol[0]}\{term_symbol[1:]}$:\quad $S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_ham: str = sp.latex(h_mat)
+
+        basis_items: list[str] = []
+        for lam, sig, ome in basis_fns:
+            basis_items.append(
+                rf"\item $\lvert {fsn(lam, tex=True)},\,{fsn(sig, tex=True)},\,{fsn(ome, tex=True)}\rangle$"
+            )
+
+        lines = [
+            r"\documentclass[12pt]{article}",
+            r"\usepackage[margin=0.25in]{geometry}",
+            r"\usepackage{amsmath,amssymb,bm,parskip}",
+            r"\usepackage{graphicx}",
+            r"\begin{document}",
+            r"\pagestyle{empty}",
+            "",
+            tex_info,
+            "",
+            tex_term,
+            "",
+            r"\textbf{Basis states $\lvert \Lambda,\Sigma,\Omega\rangle$:}",
+            r"\begin{itemize}",
+        ]
+        lines += basis_items
+        lines += [
+            r"\end{itemize}",
+            "",
+            r"\textbf{Hamiltonian matrix:}",
+            r"\begin{equation*}",
+            r"\resizebox{\linewidth}{!}{$",
+            tex_ham,
+            r"$}",
+            r"\end{equation*}",
+            "",
+            r"\textbf{Eigenvalues:}",
+            r"\begin{equation*}",
+            r"\resizebox{\linewidth}{!}{$",
+            r"\begin{aligned}",
+        ]
+
+        for idx, eigenval in enumerate(eigenval_list, start=1):
+            lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval.simplify())} \\")
+
+        lines += [r"\end{aligned}", r"$}", r"\end{equation*}", "", r"\end{document}"]
+
+        tex_str: str = "\n".join(lines)
+
+        with open("../docs/main.tex", "w") as file:
+            file.write(tex_str)
+
+        subprocess.run(
+            ["pdflatex", "-interaction=batchmode", "../docs/main.tex"], cwd="../docs/", check=False
+        )
 
 
 if __name__ == "__main__":
