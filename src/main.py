@@ -841,8 +841,7 @@ def main() -> None:
             sp.pprint(eigenval)
 
     if PRINT_TEX:
-        tex_info: str = rf"\textbf{{Info:}} Computed up to $\bm{{N}}^{MAX_N_POWER}$, max anticommutator value $\bm{{N}}^{MAX_N_ACOMM_POWER}$"
-        tex_term: str = rf"\textbf{{Term symbol:}} $^{term_symbol[0]}\{term_symbol[1:]}$:\quad $S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_term: str = rf"\item $^{term_symbol[0]}\{term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
         tex_ham: str = sp.latex(h_mat)
 
         basis_items: list[str] = []
@@ -859,9 +858,16 @@ def main() -> None:
             r"\begin{document}",
             r"\pagestyle{empty}",
             "",
-            tex_info,
+            r"\textbf{Info:}",
+            r"\begin{itemize}",
+            rf"\item Computed up to $\bm{{N}}^{MAX_N_POWER}$",
+            rf"\item Max anticommutator value $\bm{{N}}^{MAX_N_ACOMM_POWER}",
+            r"\end{itemize}",
             "",
+            r"\textbf{Term symbol:}",
+            r"\begin{itemize}",
             tex_term,
+            r"\end{itemize}",
             "",
             r"\textbf{Basis states $\lvert \Lambda,\Sigma,\Omega\rangle$:}",
             r"\begin{itemize}",
