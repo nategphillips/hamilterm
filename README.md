@@ -2,6 +2,44 @@
 
 Symbolically computes the rotational Hamiltonian for a given molecular term symbol.
 
+## Example Output
+
+**Info:**
+
+- Computed up to $\bm{N}^4$
+- Max anticommutator value $\bm{N}^2$
+
+**Term symbol:**
+
+- $^2\Sigma: \quad S=1/2,\;\Lambda=0$
+
+**Basis states $\lvert \Lambda,\Sigma,\Omega\rangle$:**
+
+- $\lvert \pm0,\,-1/2,\,-1/2\rangle$
+- $\lvert \pm0,\,+1/2,\,+1/2\rangle$
+
+**Hamiltonian matrix:**
+
+$$
+\begin{bmatrix}B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16}\\\frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}\end{bmatrix}
+$$
+
+**Eigenvalues:**
+
+$$
+\begin{aligned}
+F_{1} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} - \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
+F_{2} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} + \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
+\end{aligned}
+$$
+
+## Roadmap
+
+Computing and simplifying the eigenvalues for $^2\Pi$ and higher states is extremely slow with SymPy. Some options for future speedups include:
+
+- Replacing SymPy with SymEngine.
+- Switching to Julia and using Symbolics.jl.
+
 ## License and Copyright
 
 Copyright (C) 2025 Nathan G. Phillips
