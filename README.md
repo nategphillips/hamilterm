@@ -27,7 +27,7 @@ $$
     H_r &= B N^{2} - D N^{4} \\
     H_{so} &= 0 \\
     H_{ss} &= 0 \\
-    H_{sr} &= \gamma N \cdot S + \frac{\gamma_{D} \left[N \cdot S, N^{2}\right]_+}{2} \\
+    H_{sr} &= \gamma N \cdot S + \frac{\gamma_{D} \left[N \cdot S, N^{2}\right]\_+}{2} \\
     H_{ld} &= 0
 \end{aligned}
 $$
