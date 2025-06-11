@@ -42,6 +42,8 @@ SPIN_SPIN_CD_CONSTS: list[sp.Symbol] = [lambda_D, lambda_H]
 SPIN_ROTATION_CD_CONSTS: list[sp.Symbol] = [gamma_D, gamma_H, gamma_L]
 LAMBDA_DOUBLING_CD_CONSTS_OPQ: list[sp.Symbol] = [o_D + p_D + q_D, o_H + p_H + q_H, o_L + p_L + q_L]
 LAMBDA_DOUBLING_CD_CONSTS_PQ: list[sp.Symbol] = [p_D + 2 * q_D, p_H + 2 * q_H, p_L + 2 * q_L]
+LAMBDA_DOUBLING_CD_CONSTS_O: list[sp.Symbol] = [o_D, o_H, o_L]
+LAMBDA_DOUBLING_CD_CONSTS_P: list[sp.Symbol] = [p_D, p_H, p_L]
 LAMBDA_DOUBLING_CD_CONSTS_Q: list[sp.Symbol] = [q_D, q_H, q_L]
 
 # Manually select which terms contribute to the molecular Hamiltonian.
@@ -64,6 +66,7 @@ MAX_N_ACOMM_POWER: int = 2
 PRINT_TERM: bool = False
 PRINT_TEX: bool = True
 
+MAX_POWER_INDEX: int = MAX_N_POWER // 2
 MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
 LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
 LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
@@ -766,6 +769,150 @@ def generate_basis_fns(
     return basis_fns
 
 
+class AntiCommutator(sp.Expr):
+    """Represents the anticommutator [A, B]_+."""
+
+    def _sympystr(self, printer):
+        # TODO: 25/06/11 - This is the fallback for the Unicode pretty printer, which means the
+        #       superscripts on the N^{2n} terms and the `*` symbols aren't converted to their
+        #       Unicode counterparts. Doesn't matter, just looks slightly worse than it could.
+        a, b = self.args
+        return f"[{printer._print(a)}, {printer._print(b)}]_+"
+
+    def _latex(self, printer):
+        a, b = self.args
+        return rf"\left[{printer._print(a)}, {printer._print(b)}\right]_+"
+
+
+class DotSymbol(sp.Symbol):
+    r"""Overrides the LaTeX output for \cdot."""
+
+    def _latex(self, _):
+        return r"\cdot"
+
+
+def included_hamiltonian_terms(s_qn: sp.Rational, lambda_qn: int) -> list[sp.Expr]:
+    """Return symbolic expressions for the terms included in the diatomic Hamiltonian.
+
+    Args:
+        s_qn (sp.Rational): Quantum number S
+        lambda_qn (int): Quantum number Λ
+
+    Returns:
+        list[sp.Expr]: Terms included in the diatomic Hamiltonian
+    """
+    N, S, S_z = sp.symbols("N, S, S_z")
+
+    h_r: sp.Expr = sp.S.Zero
+    h_so: sp.Expr = sp.S.Zero
+    h_ss: sp.Expr = sp.S.Zero
+    h_sr: sp.Expr = sp.S.Zero
+    h_ld: sp.Expr = sp.S.Zero
+
+    # H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
+    if include_r:
+        coeffs: list[tuple[sp.Symbol, int]] = [(B, 2), (-D, 4), (H, 6), (L, 8), (M, 10), (P, 12)]
+
+        for symbol, exponent in coeffs[:MAX_POWER_INDEX]:
+            h_r += symbol * N**exponent
+
+    # H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
+    #   + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
+    if include_so and lambda_qn > 0 and s_qn > 0:
+        L_z: sp.Symbol = sp.Symbol("L_z")
+
+        # A(LzSz)
+        h_so += A * L_z * S_z
+
+        # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
+        for idx, symbol in enumerate(SPIN_ORBIT_CD_CONSTS[:MAX_ACOMM_INDEX]):
+            h_so += safe_rational(1, 2) * symbol * AntiCommutator(N ** (2 * idx + 2), L_z * S_z)
+
+        # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
+        if s_qn > 1:
+            h_so += eta * L_z * S_z * (S_z**2 - safe_rational(1, 5) * (3 * S**2 - 1))
+
+    # H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
+    #   + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
+    if include_ss and s_qn > safe_rational(1, 2):
+        # 2λ/3(3Sz^2 - S^2)
+        h_ss += safe_rational(2, 3) * lamda * (3 * S_z**2 - S**2)
+
+        # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
+        for idx, symbol in enumerate(SPIN_SPIN_CD_CONSTS[:MAX_ACOMM_INDEX]):
+            h_ss += (
+                safe_rational(1, 2)
+                * symbol
+                * AntiCommutator(safe_rational(2, 3) * (3 * S_z**2 - S**2), N ** (2 * idx + 2))
+            )
+
+        # θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4) term only valid for states with S > 3/2.
+        if s_qn > safe_rational(3, 2):
+            h_ss += (
+                safe_rational(1, 12)
+                * theta
+                * (35 * S_z**4 - 30 * S**2 * S_z**2 + 25 * S_z**2 - 6 * S**2 + 3 * S**4)
+            )
+
+    # H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
+    #   + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
+    if include_sr and s_qn > 0:
+        dot: DotSymbol = DotSymbol("dot", commutative=False)
+        T_0: sp.Symbol = sp.Symbol("T_0")
+        ndots: sp.Expr = sp.Mul(N, dot, S, evaluate=False)
+        TJ: sp.Expr = sp.Function("T")(j_qn)
+        TS: sp.Expr = sp.Function("T")(S)
+
+        # γ(N·S)
+        h_sr += sp.Mul(gamma, ndots, evaluate=False)
+
+        # γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
+        for idx, symbol in enumerate(SPIN_ROTATION_CD_CONSTS[:MAX_ACOMM_INDEX]):
+            h_sr += safe_rational(1, 2) * symbol * AntiCommutator(ndots, N ** (2 * idx + 2))
+
+        # -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)} term only valid for states with S > 1.
+        if s_qn > 1:
+            h_sr += -sp.sqrt(safe_rational(70, 3)) * gamma_S * T_0**2 * AntiCommutator(TJ, TS**3)
+
+    # H_ld = o/2(S+^2 + S-^2) - p/2(N+S+ + N-S-) + q/2(N+^2 + N-^2)
+    #   + 0.25[S+^2 + S-^2, o_D * N^2 + o_H * N^4 + o_L * N^6]+
+    #   - 0.25[N+S+ + N-S-, p_D * N^2 + p_H * N^4 + p_L * N^6]+
+    #   + 0.25[N+^2 + N-^2, q_D * N^2 + q_H * N^4 + q_L * N^6]+
+    if include_ld and lambda_qn == 1:
+        Np, Nm, Sp, Sm = sp.symbols("N_+, N_-, S_+, S_-")
+
+        # q/2(N+^2 + N-^2)
+        h_ld += safe_rational(1, 2) * q * (Np**2 + Nm**2)
+
+        # 0.25[N+^2 + N-^2, q_D * N^2 + q_H * N^4 + q_L * N^6]+
+        for idx, symbol in enumerate(LAMBDA_DOUBLING_CD_CONSTS_Q[:MAX_ACOMM_INDEX]):
+            h_ld += safe_rational(1, 4) * symbol * AntiCommutator(Sp**2 + Sm**2, N ** (2 * idx + 2))
+
+        if s_qn > 0:
+            # -p/2(N+S+ + N-S-)
+            h_ld += -safe_rational(1, 2) * p * (Np * Sp + Nm * Sm)
+
+            # -0.25[N+S+ + N-S-, p_D * N^2 + p_H * N^4 + p_L * N^6]+
+            for idx, symbol in enumerate(LAMBDA_DOUBLING_CD_CONSTS_P[:MAX_ACOMM_INDEX]):
+                h_ld += (
+                    -safe_rational(1, 4)
+                    * symbol
+                    * AntiCommutator(Np * Sp + Nm * Sm, N ** (2 * idx + 2))
+                )
+
+        if s_qn > safe_rational(1, 2):
+            # o/2(S+^2 + S-^2)
+            h_ld += safe_rational(1, 2) * o * (Sp**2 + Sm**2)
+
+            # 0.25[S+^2 + S-^2, o_D * N^2 + o_H * N^4 + o_L * N^6]+
+            for idx, symbol in enumerate(LAMBDA_DOUBLING_CD_CONSTS_O[:MAX_ACOMM_INDEX]):
+                h_ld += (
+                    safe_rational(1, 4) * symbol * AntiCommutator(Sp**2 + Sm**2, N ** (2 * idx + 2))
+                )
+
+    return [h_r, h_so, h_ss, h_sr, h_ld]
+
+
 def safe_rational(num: int, denom: int) -> sp.Rational:
     """Ensure a rational return value.
 
@@ -822,6 +969,8 @@ def main() -> None:
     eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
     eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
 
+    h_r, h_so, h_ss, h_sr, h_ld = included_hamiltonian_terms(s_qn, lambda_qn)
+
     if PRINT_TERM:
         print("Info:")
         print(f"Computed up to N^{MAX_N_POWER}, max anticommutator value N^{MAX_N_ACOMM_POWER}")
@@ -833,6 +982,18 @@ def main() -> None:
         for state in basis_fns:
             print(rf"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
 
+        print("\nHamiltonian H = H_r + H_so + H_ss + H_sr + H_ld:")
+        print("H_r:")
+        sp.pprint(h_r)
+        print("H_so:")
+        sp.pprint(h_so)
+        print("H_ss:")
+        sp.pprint(h_ss)
+        print("H_sr:")
+        sp.pprint(h_sr)
+        print("H_ld:")
+        sp.pprint(h_ld)
+
         print("\nHamiltonian matrix:")
         sp.pprint(h_mat)
 
@@ -841,7 +1002,9 @@ def main() -> None:
             sp.pprint(eigenval)
 
     if PRINT_TEX:
-        tex_term: str = rf"\item $^{term_symbol[0]}\{term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_term: str = (
+            rf"\item $^{term_symbol[0]}\{term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
+        )
         tex_ham: str = sp.latex(h_mat)
 
         basis_items: list[str] = []
@@ -851,7 +1014,7 @@ def main() -> None:
             )
 
         lines: list[str] = [
-            r"\documentclass[12pt]{article}",
+            r"\documentclass[12pt,fleqn]{article}",
             r"\usepackage[margin=0.25in]{geometry}",
             r"\usepackage{amsmath,amssymb,bm,parskip}",
             r"\usepackage{graphicx}",
@@ -875,6 +1038,17 @@ def main() -> None:
         lines += basis_items
         lines += [
             r"\end{itemize}",
+            "",
+            r"\textbf{Hamiltonian $H = H_r + H_{so} + H_{ss} + H_{sr} + H_{ld}$:}",
+            r"\begin{equation*}",
+            r"\begin{aligned}",
+            rf"H_r &= {sp.latex(h_r)} \\",
+            rf"H_{{so}} &= {sp.latex(h_so)} \\",
+            rf"H_{{ss}} &= {sp.latex(h_ss)} \\",
+            rf"H_{{sr}} &= {sp.latex(h_sr)} \\",
+            rf"H_{{ld}} &= {sp.latex(h_ld)}",
+            r"\end{aligned}",
+            r"\end{equation*}",
             "",
             r"\textbf{Hamiltonian matrix:}",
             r"\begin{equation*}",
