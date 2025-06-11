@@ -20,19 +20,33 @@ Sample output for a $^2\Sigma$ state is shown below. See `./docs/main.pdf` to av
 - $\lvert \pm0,\,-1/2,\,-1/2\rangle$
 - $\lvert \pm0,\,+1/2,\,+1/2\rangle$
 
+**Hamiltonian $H = H_r + H_{so} + H_{ss} + H_{sr} + H_{ld}$:**
+
+$$
+\begin{aligned}
+    H_r &= B N^{2} - D N^{4} \\
+    H_{so} &= 0 \\
+    H_{ss} &= 0 \\
+    H_{sr} &= \gamma N \cdot S + \frac{\gamma_{D} \left[N \cdot S, N^{2}\right]_+}{2} \\
+    H_{ld} &= 0
+\end{aligned}
+$$
+
 **Hamiltonian matrix:**
 
 $$
-\begin{bmatrix}B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} \\
-\frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}\end{bmatrix}
+\begin{bmatrix}
+    B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} \\
+    \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}
+\end{bmatrix}
 $$
 
 **Eigenvalues:**
 
 $$
 \begin{aligned}
-F_{1} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} - \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
-F_{2} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} + \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
+    F_{1} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} - \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
+    F_{2} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} + \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
 \end{aligned}
 $$
 
