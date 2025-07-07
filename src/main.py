@@ -80,7 +80,6 @@ def mel_j2(j_qn: sp.Symbol) -> sp.Expr:
 
     Returns:
         sp.Expr: Matrix element J(J + 1)
-
     """
     return j_qn * (j_qn + 1)
 
@@ -94,7 +93,6 @@ def mel_jp(j_qn: sp.Symbol, omega_qn_j: sp.Rational | sp.Expr) -> sp.Expr:
 
     Returns:
         sp.Expr: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
-
     """
     return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
@@ -108,7 +106,6 @@ def mel_jm(j_qn: sp.Symbol, omega_qn_j: sp.Rational | sp.Expr) -> sp.Expr:
 
     Returns:
         sp.Expr: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
-
     """
     return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
@@ -121,7 +118,6 @@ def mel_s2(s_qn: sp.Rational) -> sp.Rational:
 
     Returns:
         sp.Rational: Matrix element S(S + 1)
-
     """
     return s_qn * (s_qn + 1)
 
@@ -135,7 +131,6 @@ def mel_sp(s_qn: sp.Rational, sigma_qn_j: sp.Rational | sp.Expr) -> sp.Expr:
 
     Returns:
         sp.Expr: Matrix element [S(S + 1) - Σ(Σ + 1)]^(1/2)
-
     """
     return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
@@ -149,7 +144,6 @@ def mel_sm(s_qn: sp.Rational, sigma_qn_j: sp.Rational | sp.Expr) -> sp.Expr:
 
     Returns:
         sp.Expr: Matrix element [S(S + 1) - Σ(Σ - 1)]^(1/2)
-
     """
     return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
@@ -234,7 +228,6 @@ def h_rotational(
 
     Returns:
         sp.Expr: Matrix elements for BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
-
     """
     # BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
     return (
@@ -269,7 +262,6 @@ def h_spin_orbit(
     Returns:
         sp.Expr: Matrix elements for A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+
             + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+ + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
-
     """
     lambda_qn_j, sigma_qn_j, _ = basis_fns[j]
 
@@ -348,7 +340,6 @@ def h_spin_spin(
     Returns:
         sp.Expr: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
             + λ_H/2[2/3(3Sz^2 - S^2), N^4]+ + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
-
     """
     sigma_qn_j: sp.Rational = basis_fns[j][1]
 
@@ -435,7 +426,6 @@ def h_spin_rotation(
     Returns:
         sp.Expr: Matrix elements for γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
             + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
-
     """
     _, sigma_qn_i, omega_qn_i = basis_fns[i]
     _, sigma_qn_j, omega_qn_j = basis_fns[j]
@@ -544,7 +534,6 @@ def h_lambda_doubling(
             + 0.25(o_D + p_D + q_D)[S+^2 + S-^2, N^2]+ - 0.25(p_D + 2 * q_D)[J+S+ + J-S-, N^2]+ + q_D/4[J+^2 + J-^2, N^2]+
             + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
             + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
-
     """
     lambda_qn_i = basis_fns[i][0]
     lambda_qn_j = basis_fns[j][0]
@@ -702,7 +691,6 @@ def build_hamiltonian(
 
     Returns:
         sp.MutableDenseMatrix: Hamiltonian matrix H
-
     """
     dim: int = len(basis_fns)
     n_op_mats: list[sp.MutableDenseMatrix] = construct_n_operator_matrices(basis_fns, s_qn)
@@ -729,7 +717,6 @@ def parse_term_symbol(term_symbol: str) -> tuple[sp.Rational, int]:
 
     Returns:
         tuple[sp.Rational, int]: Quantum numbers S and Λ
-
     """
     spin_multiplicity: int = int(term_symbol[0])
     s_qn: sp.Rational = safe_rational(spin_multiplicity - 1, 2)
@@ -750,7 +737,6 @@ def generate_basis_fns(
 
     Returns:
         list[tuple[int, sp.Rational, sp.Rational]]: List of basis vectors |Λ, Σ; Ω>
-
     """
     # Possible values for Σ = S, S - 1, ..., -S. There are 2S + 1 total values of Σ.
     sigmas: list[sp.Rational] = [
@@ -925,7 +911,6 @@ def safe_rational(num: int, denom: int) -> sp.Rational:
 
     Returns:
         sp.Rational: A guaranteed sp.Rational type
-
     """
     r = sp.Rational(num, denom)
 
@@ -943,7 +928,6 @@ def fsn(num: int | sp.Rational | sp.Expr, tex: bool = False) -> str:
 
     Returns:
         str: Print-friendly string with a +, ±, or -
-
     """
     s: str = str(num)
 
