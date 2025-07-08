@@ -849,7 +849,7 @@ def generate_basis_fns(s_qn: Fraction, lambda_qn: int) -> list[tuple[int, Fracti
 def main() -> None:
     """Entry point."""
     j_qn: int = 1
-    term_symbol: str = "2Sigma"
+    term_symbol: str = "3Sigma"
 
     # Constants for the v' = 0 B3Σu- state of O2.
     consts = Constants(
@@ -864,6 +864,8 @@ def main() -> None:
 
     # The Hamiltonian matrix is always Hermitian, so eigvalsh can be used.
     eigenvals: NDArray[np.float64] = np.linalg.eigvalsh(h_mat).astype(np.float64)
+
+    # Example Hamiltonian and eigenvalues.
     print(h_mat)
     print(eigenvals)
 
