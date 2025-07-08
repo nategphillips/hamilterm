@@ -1097,14 +1097,15 @@ def main() -> None:
 
     if PRINT_TERM:
         print("Info:")
-        print(f"Computed up to N^{MAX_N_POWER}, max anticommutator value N^{MAX_N_ACOMM_POWER}")
+        print(f" • Computed up to N^{MAX_N_POWER}")
+        print(f" • max anticommutator value N^{MAX_N_ACOMM_POWER}")
 
         print("\nTerm symbol:")
-        print(f"{term_symbol[0]}{LAMBDA_STR_MAP[term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}")
+        print(f" • {term_symbol[0]}{LAMBDA_STR_MAP[term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}")
 
         print("\nBasis states |Λ, Σ, Ω>:")
         for state in basis_fns:
-            print(rf"|{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
+            print(rf" • |{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
 
         print("\nHamiltonian H = H_r + H_so + H_ss + H_sr + H_ld:")
         print("H_r:")
