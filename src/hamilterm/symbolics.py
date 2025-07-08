@@ -1,4 +1,4 @@
-# module main
+# module symbolics
 """Symbolically computes the diatomic Hamiltonian for Σ and Π states."""
 
 # Copyright (C) 2025 Nathan G. Phillips

@@ -1,13 +1,20 @@
 [project]
 name = "hamilterm"
 version = "0.1.0"
-description = "Symbolically computes the rotational Hamiltonian for a given molecular term symbol."
+description = "Symbolically and numerically computes the rotational Hamiltonian for a given molecular term symbol."
 readme = "README.md"
+authors = [
+    { name = "nategphillips", email = "30729007+nategphillips@users.noreply.github.com" }
+]
 requires-python = "==3.13.5"
 dependencies = [
     "numpy==2.3.1",
     "sympy==1.14.0",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
