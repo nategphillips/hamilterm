@@ -3,8 +3,11 @@ name = "hamilterm"
 version = "0.1.0"
 description = "Symbolically computes the rotational Hamiltonian for a given molecular term symbol."
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = ["sympy>=1.14.0"]
+requires-python = "==3.13.5"
+dependencies = [
+    "numpy==2.3.1",
+    "sympy==1.14.0",
+]
 
 [tool.ruff]
 line-length = 100
