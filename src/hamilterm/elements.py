@@ -63,7 +63,7 @@ def j_plus(j_qn: int | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
     """
     result: Fraction | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
 
-    if not isinstance(result, sp.Expr):
+    if isinstance(j_qn, int):
         return math.sqrt(result)
 
     return sp.sqrt(result)
@@ -89,7 +89,7 @@ def j_minus(j_qn: int | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
     """
     result: Fraction | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
 
-    if not isinstance(result, sp.Expr):
+    if isinstance(j_qn, int):
         return math.sqrt(result)
 
     return sp.sqrt(result)
