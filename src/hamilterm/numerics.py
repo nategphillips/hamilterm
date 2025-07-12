@@ -22,27 +22,8 @@ from typing import cast
 import numpy as np
 from numpy.typing import NDArray
 
-from hamilterm import constants
+from hamilterm import constants, options
 from hamilterm import elements as mel
-
-# Manually select which terms contribute to the molecular Hamiltonian.
-include_r: bool = True
-include_so: bool = True
-include_ss: bool = True
-include_sr: bool = True
-include_ld: bool = True
-
-# MAX_N_POWER can be 2, 4, 6, 8, 10, or 12. Powers above 12 have no associated constants and
-# therefore will not contribute to the calculation.
-MAX_N_POWER: int = 4
-# Specify the maximum power of N used when evaluating anticommutators. A value of 0 will skip the
-# evaluation of all anticommutators.
-MAX_N_ACOMM_POWER: int = 2
-
-MAX_POWER_INDEX: int = MAX_N_POWER // 2
-MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
-LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
-LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
 
 
 def construct_n_operator_matrices(
@@ -73,7 +54,7 @@ def construct_n_operator_matrices(
             n_op_mats[0][i, j] = mel.n_squared(i, j, basis_fns, s_qn, j_qn)
 
     # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
-    for i in range(1, MAX_N_POWER // 2):
+    for i in range(1, options.MAX_N_POWER // 2):
         n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
 
     return n_op_mats
@@ -155,7 +136,7 @@ def h_spin_orbit(
             # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
             #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
             #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
-            for idx, const in enumerate(spin_orbit_cd_consts[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_orbit_cd_consts[: options.MAX_ACOMM_INDEX]):
                 result += (
                     Fraction(1, 2)
                     * const
@@ -219,7 +200,7 @@ def h_spin_spin(
             #   = λ_x/3[⟨i|(3Sz^2 - S^2)N^{2n}|j⟩ + ⟨i|N^{2n}(3Sz^2 - S^2)|j⟩]
             #   = λ_x/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
             #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
-            for idx, const in enumerate(spin_spin_cd_consts[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_spin_cd_consts[: options.MAX_ACOMM_INDEX]):
                 result += (
                     Fraction(1, 3)
                     * const
@@ -296,7 +277,7 @@ def h_spin_rotation(
             # ⟨i|γ_x/2[N·S, N^{2n}]+|j⟩ = γ_x/2[⟨i|(N·S)N^{2n}|j⟩ + ⟨i|N^{2n}(N·S)|j⟩]
             #                           = γ_x/2(∑_k⟨i|N·S|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|N·S|j⟩)
             #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
-            for idx, const in enumerate(spin_rotation_cd_consts[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_rotation_cd_consts[: options.MAX_ACOMM_INDEX]):
                 result += (
                     Fraction(1, 2)
                     * const
@@ -410,7 +391,7 @@ def h_lambda_doubling(
             #   = 0.25(o_x + p_x + q_x)[⟨i|(S+^2 + S-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(S+^2 + S-^2)|j⟩]
             #   = 0.25(o_x + p_x + q_x)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|S+^2 + S-^2|j⟩)
             #   = 0.25(o_x + p_x + q_x)[(S+^2 + S-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(S+^2 + S-^2)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_opq[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_opq[: options.MAX_ACOMM_INDEX]):
                 result += (
                     Fraction(1, 4)
                     * const
@@ -424,7 +405,7 @@ def h_lambda_doubling(
             #   = -0.25(p_x + 2 * q_x)[⟨i|(J+S+ + J-S-)N^{2n}|j⟩ + ⟨i|N^{2n}(J+S+ + J-S-)|j⟩]
             #   = -0.25(p_x + 2 * q_x)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+S+ + J-S-|j⟩)
             #   = -0.25(p_x + 2 * q_x)[(J+S+ + J-S-)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+S+ + J-S-)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_pq[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_pq[: options.MAX_ACOMM_INDEX]):
                 result += (
                     -Fraction(1, 4)
                     * const
@@ -438,7 +419,7 @@ def h_lambda_doubling(
             #   = 0.25 * q_x[⟨i|(J+^2 + J-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(J+^2 + J-^2)|j⟩]
             #   = 0.25 * q_x(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+^2 + J-^2|j⟩)
             #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_q[:MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_q[: options.MAX_ACOMM_INDEX]):
                 result += (
                     Fraction(1, 4)
                     * const
@@ -473,7 +454,14 @@ def build_hamiltonian(
     h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
     switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
-        int, [include_r, include_so, include_ss, include_sr, include_ld]
+        int,
+        [
+            options.INCLUDE_R,
+            options.INCLUDE_SO,
+            options.INCLUDE_SS,
+            options.INCLUDE_SR,
+            options.INCLUDE_LD,
+        ],
     )
 
     for i in range(dim):
@@ -503,7 +491,7 @@ def parse_term_symbol(term_symbol: str) -> tuple[Fraction, int]:
     spin_multiplicity: int = int(term_symbol[0])
     s_qn: Fraction = Fraction(spin_multiplicity - 1, 2)
     term: str = term_symbol[1:]
-    lambda_qn: int = LAMBDA_INT_MAP[term]
+    lambda_qn: int = options.LAMBDA_INT_MAP[term]
 
     return s_qn, lambda_qn
 
