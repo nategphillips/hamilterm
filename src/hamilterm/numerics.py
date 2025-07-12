@@ -1,4 +1,4 @@
-# module numerics
+# module numerics.py
 """Numerically computes the diatomic Hamiltonian for Σ and Π states."""
 
 # Copyright (C) 2025 Nathan G. Phillips
@@ -17,87 +17,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from dataclasses import dataclass, field
 from fractions import Fraction
 from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
 
-
-@dataclass
-class RotationalConsts:
-    """Constants for the rotational operator."""
-
-    B: float = 0.0
-    D: float = 0.0
-    H: float = 0.0
-    L: float = 0.0
-    M: float = 0.0
-    P: float = 0.0
-
-
-@dataclass
-class SpinOrbitConsts:
-    """Constants for the spin-orbit operator."""
-
-    A: float = 0.0
-    A_D: float = 0.0
-    A_H: float = 0.0
-    A_L: float = 0.0
-    A_M: float = 0.0
-    eta: float = 0.0
-
-
-@dataclass
-class SpinSpinConsts:
-    """Constants for the spin-spin operator."""
-
-    lamda: float = 0.0
-    lambda_D: float = 0.0
-    lambda_H: float = 0.0
-    theta: float = 0.0
-
-
-@dataclass
-class SpinRotationConsts:
-    """Constants for the spin-rotation operator."""
-
-    gamma: float = 0.0
-    gamma_D: float = 0.0
-    gamma_H: float = 0.0
-    gamma_L: float = 0.0
-    gamma_S: float = 0.0
-
-
-@dataclass
-class LambdaDoublingConsts:
-    """Constants for the Λ-doubling operator."""
-
-    o: float = 0.0
-    p: float = 0.0
-    q: float = 0.0
-    o_D: float = 0.0
-    p_D: float = 0.0
-    q_D: float = 0.0
-    o_H: float = 0.0
-    p_H: float = 0.0
-    q_H: float = 0.0
-    o_L: float = 0.0
-    p_L: float = 0.0
-    q_L: float = 0.0
-
-
-@dataclass
-class Constants:
-    """All molecular constants."""
-
-    rotational: RotationalConsts = field(default_factory=RotationalConsts)
-    spin_orbit: SpinOrbitConsts = field(default_factory=SpinOrbitConsts)
-    spin_spin: SpinSpinConsts = field(default_factory=SpinSpinConsts)
-    spin_rotation: SpinRotationConsts = field(default_factory=SpinRotationConsts)
-    lambda_doubling: LambdaDoublingConsts = field(default_factory=LambdaDoublingConsts)
-
+from hamilterm import constants
 
 # Manually select which terms contribute to the molecular Hamiltonian.
 include_r: bool = True
@@ -260,7 +186,10 @@ def construct_n_operator_matrices(
 
 
 def h_rotational(
-    i: int, j: int, n_op_mats: list[NDArray[np.float64]], r_consts: RotationalConsts
+    i: int,
+    j: int,
+    n_op_mats: list[NDArray[np.float64]],
+    r_consts: constants.RotationalConsts[float],
 ) -> float:
     """Return matrix elements for the rotational Hamiltonian.
 
@@ -292,7 +221,7 @@ def h_spin_orbit(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
-    so_consts: SpinOrbitConsts,
+    so_consts: constants.SpinOrbitConsts[float],
 ) -> float:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
@@ -379,7 +308,7 @@ def h_spin_spin(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
-    ss_consts: SpinSpinConsts,
+    ss_consts: constants.SpinSpinConsts[float],
 ) -> float:
     """Return matrix elements for the spin-spin Hamiltonian.
 
@@ -470,7 +399,7 @@ def h_spin_rotation(
     s_qn: Fraction,
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
-    sr_consts: SpinRotationConsts,
+    sr_consts: constants.SpinRotationConsts,
 ) -> float:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
@@ -584,7 +513,7 @@ def h_lambda_doubling(
     s_qn: Fraction,
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
-    ld_consts: LambdaDoublingConsts,
+    ld_consts: constants.LambdaDoublingConsts[float],
 ) -> float:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
@@ -768,7 +697,10 @@ def h_lambda_doubling(
 
 
 def build_hamiltonian(
-    basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: int, consts: Constants
+    basis_fns: list[tuple[int, Fraction, Fraction]],
+    s_qn: Fraction,
+    j_qn: int,
+    consts: constants.NumericConstants,
 ) -> NDArray[np.float64]:
     """Build the symbolic Hamiltonian matrix.
 
@@ -852,10 +784,10 @@ def main() -> None:
     term_symbol: str = "3Sigma"
 
     # Constants for the v' = 0 B3Σu- state of O2.
-    consts = Constants(
-        rotational=RotationalConsts(B=0.8132, D=4.50e-06),
-        spin_spin=SpinSpinConsts(lamda=1.69),
-        spin_rotation=SpinRotationConsts(gamma=-0.028),
+    consts: constants.NumericConstants = constants.NumericConstants(
+        rotational=constants.RotationalConsts.numeric(B=0.8132, D=4.50e-06),
+        spin_spin=constants.SpinSpinConsts.numeric(lamda=1.69),
+        spin_rotation=constants.SpinRotationConsts.numeric(gamma=-0.028),
     )
 
     s_qn, lambda_qn = parse_term_symbol(term_symbol)

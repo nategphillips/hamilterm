@@ -1,4 +1,4 @@
-# module symbolics
+# module symbolics.py
 """Symbolically computes the diatomic Hamiltonian for Σ and Π states."""
 
 # Copyright (C) 2025 Nathan G. Phillips
@@ -17,88 +17,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import subprocess
-from dataclasses import dataclass, field
+from pathlib import Path
 from typing import cast
 
 import sympy as sp
 
+from hamilterm import constants
+
 # Rotational quantum number J and the shorthand x = J(J + 1).
 j_qn, x = sp.symbols("J, x")
-
-
-@dataclass
-class RotationalConsts:
-    """Constants for the rotational operator."""
-
-    B: sp.Symbol = sp.symbols("B")
-    D: sp.Symbol = sp.symbols("D")
-    H: sp.Symbol = sp.symbols("H")
-    L: sp.Symbol = sp.symbols("L")
-    M: sp.Symbol = sp.symbols("M")
-    P: sp.Symbol = sp.symbols("P")
-
-
-@dataclass
-class SpinOrbitConsts:
-    """Constants for the spin-orbit operator."""
-
-    A: sp.Symbol = sp.symbols("A")
-    A_D: sp.Symbol = sp.symbols("A_D")
-    A_H: sp.Symbol = sp.symbols("A_H")
-    A_L: sp.Symbol = sp.symbols("A_L")
-    A_M: sp.Symbol = sp.symbols("A_M")
-    eta: sp.Symbol = sp.symbols("eta")
-
-
-@dataclass
-class SpinSpinConsts:
-    """Constants for the spin-spin operator."""
-
-    lamda: sp.Symbol = sp.symbols("lambda")
-    lambda_D: sp.Symbol = sp.symbols("lambda_D")
-    lambda_H: sp.Symbol = sp.symbols("lambda_H")
-    theta: sp.Symbol = sp.symbols("theta")
-
-
-@dataclass
-class SpinRotationConsts:
-    """Constants for the spin-rotation operator."""
-
-    gamma: sp.Symbol = sp.symbols("gamma")
-    gamma_D: sp.Symbol = sp.symbols("gamma_D")
-    gamma_H: sp.Symbol = sp.symbols("gamma_H")
-    gamma_L: sp.Symbol = sp.symbols("gamma_L")
-    gamma_S: sp.Symbol = sp.symbols("gamma_S")
-
-
-@dataclass
-class LambdaDoublingConsts:
-    """Constants for the Λ-doubling operator."""
-
-    o: sp.Symbol = sp.symbols("o")
-    p: sp.Symbol = sp.symbols("p")
-    q: sp.Symbol = sp.symbols("q")
-    o_D: sp.Symbol = sp.symbols("o_D")
-    p_D: sp.Symbol = sp.symbols("p_D")
-    q_D: sp.Symbol = sp.symbols("q_D")
-    o_H: sp.Symbol = sp.symbols("o_H")
-    p_H: sp.Symbol = sp.symbols("p_H")
-    q_H: sp.Symbol = sp.symbols("q_H")
-    o_L: sp.Symbol = sp.symbols("o_L")
-    p_L: sp.Symbol = sp.symbols("p_L")
-    q_L: sp.Symbol = sp.symbols("q_L")
-
-
-@dataclass
-class Constants:
-    """All molecular constants."""
-
-    rotational: RotationalConsts = field(default_factory=RotationalConsts)
-    spin_orbit: SpinOrbitConsts = field(default_factory=SpinOrbitConsts)
-    spin_spin: SpinSpinConsts = field(default_factory=SpinSpinConsts)
-    spin_rotation: SpinRotationConsts = field(default_factory=SpinRotationConsts)
-    lambda_doubling: LambdaDoublingConsts = field(default_factory=LambdaDoublingConsts)
-
 
 # Manually select which terms contribute to the molecular Hamiltonian.
 include_r: bool = True
@@ -265,7 +192,10 @@ def construct_n_operator_matrices(
 
 
 def h_rotational(
-    i: int, j: int, n_op_mats: list[sp.MutableDenseMatrix], r_consts: RotationalConsts
+    i: int,
+    j: int,
+    n_op_mats: list[sp.MutableDenseMatrix],
+    r_consts: constants.RotationalConsts[sp.Symbol],
 ) -> sp.Expr:
     """Return matrix elements for the rotational Hamiltonian.
 
@@ -297,7 +227,7 @@ def h_spin_orbit(
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
     s_qn: sp.Rational,
     n_op_mats: list[sp.MutableDenseMatrix],
-    so_consts: SpinOrbitConsts,
+    so_consts: constants.SpinOrbitConsts[sp.Symbol],
 ) -> sp.Expr:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
@@ -384,7 +314,7 @@ def h_spin_spin(
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
     s_qn: sp.Rational,
     n_op_mats: list[sp.MutableDenseMatrix],
-    ss_consts: SpinSpinConsts,
+    ss_consts: constants.SpinSpinConsts[sp.Symbol],
 ) -> sp.Expr:
     """Return matrix elements for the spin-spin Hamiltonian.
 
@@ -474,7 +404,7 @@ def h_spin_rotation(
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
     s_qn: sp.Rational,
     n_op_mats: list[sp.MutableDenseMatrix],
-    sr_consts: SpinRotationConsts,
+    sr_consts: constants.SpinRotationConsts[sp.Symbol],
 ) -> sp.Expr:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
@@ -586,7 +516,7 @@ def h_lambda_doubling(
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
     s_qn: sp.Rational,
     n_op_mats: list[sp.MutableDenseMatrix],
-    ld_consts: LambdaDoublingConsts,
+    ld_consts: constants.LambdaDoublingConsts,
 ) -> sp.Expr:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
@@ -771,7 +701,9 @@ def h_lambda_doubling(
 
 
 def build_hamiltonian(
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]], s_qn: sp.Rational, consts: Constants
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
+    consts: constants.SymbolicConstants,
 ) -> sp.MutableDenseMatrix:
     """Build the symbolic Hamiltonian matrix.
 
@@ -875,7 +807,7 @@ class DotSymbol(sp.Symbol):
 
 
 def included_hamiltonian_terms(
-    s_qn: sp.Rational, lambda_qn: int, consts: Constants
+    s_qn: sp.Rational, lambda_qn: int, consts: constants.SymbolicConstants
 ) -> list[sp.Expr]:
     """Return symbolic expressions for the terms included in the diatomic Hamiltonian.
 
@@ -897,7 +829,7 @@ def included_hamiltonian_terms(
 
     # H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
     if include_r:
-        r_consts: RotationalConsts = consts.rotational
+        r_consts: constants.RotationalConsts[sp.Symbol] = consts.rotational
         coeffs: list[tuple[sp.Expr, int]] = [
             (r_consts.B, 2),
             (-r_consts.D, 4),
@@ -913,7 +845,7 @@ def included_hamiltonian_terms(
     # H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
     #   + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
     if include_so and lambda_qn > 0 and s_qn > 0:
-        so_consts: SpinOrbitConsts = consts.spin_orbit
+        so_consts: constants.SpinOrbitConsts[sp.Symbol] = consts.spin_orbit
         L_z: sp.Symbol = sp.Symbol("L_z")
 
         # A(LzSz)
@@ -937,7 +869,7 @@ def included_hamiltonian_terms(
     # H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
     #   + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     if include_ss and s_qn > safe_rational(1, 2):
-        ss_consts: SpinSpinConsts = consts.spin_spin
+        ss_consts: constants.SpinSpinConsts[sp.Symbol] = consts.spin_spin
         # 2λ/3(3Sz^2 - S^2)
         h_ss += safe_rational(2, 3) * ss_consts.lamda * (3 * S_z**2 - S**2)
 
@@ -962,7 +894,7 @@ def included_hamiltonian_terms(
     # H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
     #   + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
     if include_sr and s_qn > 0:
-        sr_consts: SpinRotationConsts = consts.spin_rotation
+        sr_consts: constants.SpinRotationConsts[sp.Symbol] = consts.spin_rotation
         dot: DotSymbol = DotSymbol("dot", commutative=False)
         T_0: sp.Symbol = sp.Symbol("T_0")
         ndots: sp.Expr = sp.Mul(N, dot, S, evaluate=False)
@@ -996,7 +928,7 @@ def included_hamiltonian_terms(
     #   - 0.25[N+S+ + N-S-, p_D * N^2 + p_H * N^4 + p_L * N^6]+
     #   + 0.25[N+^2 + N-^2, q_D * N^2 + q_H * N^4 + q_L * N^6]+
     if include_ld and lambda_qn == 1:
-        ld_consts: LambdaDoublingConsts = consts.lambda_doubling
+        ld_consts: constants.LambdaDoublingConsts[sp.Symbol] = consts.lambda_doubling
         Np, Nm, Sp, Sm = sp.symbols("N_+, N_-, S_+, S_-")
 
         # q/2(N+^2 + N-^2)
@@ -1083,7 +1015,7 @@ def main() -> None:
     """Entry point."""
     term_symbol: str = "2Sigma"
 
-    consts: Constants = Constants()
+    consts: constants.SymbolicConstants = constants.SymbolicConstants()
 
     s_qn, lambda_qn = parse_term_symbol(term_symbol)
     basis_fns: list[tuple[int, sp.Rational, sp.Rational]] = generate_basis_fns(s_qn, lambda_qn)
@@ -1195,12 +1127,13 @@ def main() -> None:
 
         tex_str: str = "\n".join(lines)
 
-        with open("../docs/main.tex", "w") as file:
+        filedir: Path = Path("../../docs/main.tex")
+        workdir: Path = Path("../../docs/")
+
+        with open(filedir, "w") as file:
             file.write(tex_str)
 
-        subprocess.run(
-            ["pdflatex", "-interaction=batchmode", "../docs/main.tex"], cwd="../docs/", check=False
-        )
+        subprocess.run(["pdflatex", "-interaction=batchmode", "main.tex"], cwd=workdir, check=False)
 
 
 if __name__ == "__main__":
