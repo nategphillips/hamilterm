@@ -1,5 +1,5 @@
-# module __init__.py
-"""Symbolically or numerically computes the rotational Hamiltonian for a given molecular term symbol."""
+# module symmat.py
+"""A custom symbolic matrix type since SymPy's matrix typing is abysmal."""
 
 # Copyright (C) 2025 Nathan G. Phillips
 
@@ -15,3 +15,15 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+from typing import Protocol, TypeVar
+
+from sympy import Expr
+
+T_co = TypeVar("T_co", bound=Expr, covariant=True)
+
+
+class SymbolicMatrix(Protocol[T_co]):
+    """Matrix with expressions as elements."""
+
+    def __getitem__(self, key: tuple[int, int]) -> T_co: ...
