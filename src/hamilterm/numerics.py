@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import math
 from fractions import Fraction
 from typing import cast
 
@@ -24,6 +23,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from hamilterm import constants
+from hamilterm import elements as mel
 
 # Manually select which terms contribute to the molecular Hamiltonian.
 include_r: bool = True
@@ -43,82 +43,6 @@ MAX_POWER_INDEX: int = MAX_N_POWER // 2
 MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
 LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
 LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
-
-
-def mel_j2(j_qn: int) -> int:
-    """Return the diagonal matrix element ⟨J|J^2|J⟩ = J(J + 1).
-
-    Args:
-        j_qn (int): Quantum number J
-
-    Returns:
-        int: Matrix element J(J + 1)
-    """
-    return j_qn * (j_qn + 1)
-
-
-def mel_jp(j_qn: int, omega_qn_j: Fraction) -> float:
-    """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
-
-    Args:
-        j_qn (int): Quantum number J
-        omega_qn_j (Fraction): Quantum number Ω
-
-    Returns:
-        float: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
-    """
-    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
-
-
-def mel_jm(j_qn: int, omega_qn_j: Fraction) -> float:
-    """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
-
-    Args:
-        j_qn (int): Quantum number J
-        omega_qn_j (Fraction): Quantum number Ω
-
-    Returns:
-        float: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
-    """
-    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
-
-
-def mel_s2(s_qn: Fraction) -> Fraction:
-    """Return the diagonal matrix element ⟨S|S^2|S⟩ = S(S + 1).
-
-    Args:
-        s_qn (Fraction): Quantum number S
-
-    Returns:
-        Fraction: Matrix element S(S + 1)
-    """
-    return s_qn * (s_qn + 1)
-
-
-def mel_sp(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
-    """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
-
-    Args:
-        s_qn (Fraction): Quantum number S
-        sigma_qn_j (Fraction): Quantum number Σ
-
-    Returns:
-        float: Matrix element [S(S + 1) - Σ(Σ + 1)]^(1/2)
-    """
-    return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
-
-
-def mel_sm(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
-    """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
-
-    Args:
-        s_qn (Fraction): Quantum number S
-        sigma_qn_j (Fraction): Quantum number Σ
-
-    Returns:
-        float: Matrix element [S(S + 1) - Σ(Σ - 1)]^(1/2)
-    """
-    return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
 
 def construct_n_operator_matrices(
@@ -143,40 +67,10 @@ def construct_n_operator_matrices(
     # all their elements equal to zero.
     n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
 
-    # Matrix elements for the N^2 operator.
-    def mel_n2(i: int, j: int) -> float | Fraction:
-        """Return matrix elements for the N^2 operator.
-
-        N^2 = J^2 + S^2 - 2JzSz - (J+S- + J-S+).
-
-        Args:
-            i (int): Index i (row) of the Hamiltonian matrix
-            j (int): Index j (col) of the Hamiltonian matrix
-
-        Returns:
-            float | Fraction: Matrix elements for J^2 + S^2 - 2JzSz - (J+S- + J-S+)
-        """
-        _, sigma_qn_i, omega_qn_i = basis_fns[i]
-        _, sigma_qn_j, omega_qn_j = basis_fns[j]
-
-        # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
-        if i == j:
-            return mel_j2(j_qn) + mel_s2(s_qn) - 2 * omega_qn_j * sigma_qn_j
-
-        # ⟨J, S, Ω - 1, Σ - 1|-(J+S-)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-        if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
-            return -mel_jp(j_qn, omega_qn_j) * mel_sm(s_qn, sigma_qn_j)
-
-        # ⟨J, S, Ω + 1, Σ + 1|-(J-S+)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-        if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
-            return -mel_jm(j_qn, omega_qn_j) * mel_sp(s_qn, sigma_qn_j)
-
-        return 0.0
-
     # Form the N^2 matrix using the matrix elements above.
     for i in range(dim):
         for j in range(dim):
-            n_op_mats[0][i, j] = mel_n2(i, j)
+            n_op_mats[0][i, j] = mel.n_squared(i, j, basis_fns, s_qn, j_qn)
 
     # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
     for i in range(1, MAX_N_POWER // 2):
@@ -244,29 +138,10 @@ def h_spin_orbit(
 
     result: float = 0.0
 
-    def mel_lzsz(m: int, n: int) -> int | Fraction:
-        """Return matrix elements for the LzSz operator.
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            int | Fraction: Matrix elements for LzSz
-        """
-        lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
-
-        # Operator is completely diagonal, so only m = n terms exist.
-        if m == n:
-            # ⟨Λ, Σ|LzSz|Λ, Σ⟩ = ΛΣ
-            return lambda_qn_n * sigma_qn_n
-
-        return 0
-
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0.
     if abs(lambda_qn_j) > 0 and s_qn > 0:
         # A(LzSz)
-        result += so_consts.A * mel_lzsz(i, j)
+        result += so_consts.A * mel.lz_sz(i, j, basis_fns)
 
         spin_orbit_cd_consts: list[float] = [
             so_consts.A_D,
@@ -285,8 +160,8 @@ def h_spin_orbit(
                     Fraction(1, 2)
                     * const
                     * (
-                        n_op_mats[idx][i, k] * mel_lzsz(k, j)
-                        + mel_lzsz(i, k) * n_op_mats[idx][k, j]
+                        n_op_mats[idx][i, k] * mel.lz_sz(k, j, basis_fns)
+                        + mel.lz_sz(i, k, basis_fns) * n_op_mats[idx][k, j]
                     )
                 )
 
@@ -295,8 +170,8 @@ def h_spin_orbit(
             # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
             result += (
                 so_consts.eta
-                * mel_lzsz(i, j)
-                * (sigma_qn_j**2 - Fraction(1, 5) * (3 * mel_s2(s_qn) - 1))
+                * mel.lz_sz(i, j, basis_fns)
+                * (sigma_qn_j**2 - Fraction(1, 5) * (3 * mel.s_squared(s_qn) - 1))
             )
 
     return result
@@ -331,29 +206,10 @@ def h_spin_spin(
 
     result: float = 0.0
 
-    def mel_sz2ms2(m: int, n: int) -> int | Fraction:
-        """Return matrix elements for the 3Sz^2 - S^2 operator.
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            int | Fraction: Matrix elements for 3Sz^2 - S^2
-        """
-        sigma_qn_n = basis_fns[n][1]
-
-        # Operator is completely diagonal, so only m = n terms exist.
-        if m == n:
-            # ⟨Λ, Σ|3Sz^2 - S^2|Λ, Σ⟩ = 3Σ^2 - S(S + 1)
-            return 3 * sigma_qn_n**2 - mel_s2(s_qn)
-
-        return 0
-
     # Spin-spin coupling is only defined for states with S > 1/2.
     if s_qn > Fraction(1, 2):
         # 2λ/3(3Sz^2 - S^2)
-        result += Fraction(2, 3) * ss_consts.lamda * mel_sz2ms2(i, j)
+        result += Fraction(2, 3) * ss_consts.lamda * mel.sz2_minus_s2(i, j, basis_fns, s_qn)
 
         spin_spin_cd_consts: list[float] = [ss_consts.lambda_D, ss_consts.lambda_H]
 
@@ -368,8 +224,8 @@ def h_spin_spin(
                     Fraction(1, 3)
                     * const
                     * (
-                        mel_sz2ms2(i, k) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel_sz2ms2(k, j)
+                        mel.sz2_minus_s2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.sz2_minus_s2(k, j, basis_fns, s_qn)
                     )
                 )
 
@@ -382,10 +238,10 @@ def h_spin_spin(
                 * ss_consts.theta
                 * (
                     35 * sigma_qn_j**4
-                    - 30 * mel_s2(s_qn) * sigma_qn_j**2
+                    - 30 * mel.s_squared(s_qn) * sigma_qn_j**2
                     + 25 * sigma_qn_j**2
-                    - 6 * mel_s2(s_qn)
-                    + 3 * mel_s2(s_qn) ** 2
+                    - 6 * mel.s_squared(s_qn)
+                    + 3 * mel.s_squared(s_qn) ** 2
                 )
             )
 
@@ -424,39 +280,10 @@ def h_spin_rotation(
 
     result: float = 0.0
 
-    def mel_ndots(m: int, n: int) -> float | Fraction:
-        """Return matrix elements for the N·S operator.
-
-        N·S = JzSz + 0.5(J+S- + J-S+) - S^2
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            float: Matrix elements for JzSz + 0.5(J+S- + J-S+) - S^2
-        """
-        _, sigma_qn_m, omega_qn_m = basis_fns[m]
-        _, sigma_qn_n, omega_qn_n = basis_fns[n]
-
-        # ⟨S, Ω, Σ|JzSz - S^2|S, Ω, Σ⟩ = ΩΣ - S(S + 1)
-        if m == n:
-            return omega_qn_n * sigma_qn_n - mel_s2(s_qn)
-
-        # ⟨J, S, Ω - 1, Σ - 1|0.5(J+S-)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-        if omega_qn_m == omega_qn_n - 1 and sigma_qn_m == sigma_qn_n - 1:
-            return Fraction(1, 2) * mel_jp(j_qn, omega_qn_n) * mel_sm(s_qn, sigma_qn_n)
-
-        # ⟨J, S, Ω + 1, Σ + 1|0.5(J-S+)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-        if omega_qn_m == omega_qn_n + 1 and sigma_qn_m == sigma_qn_n + 1:
-            return Fraction(1, 2) * mel_jm(j_qn, omega_qn_n) * mel_sp(s_qn, sigma_qn_n)
-
-        return 0.0
-
     # Spin-rotation coupling is only defined for states with S > 0.
     if s_qn > 0:
         # γ(N·S)
-        result += sr_consts.gamma * mel_ndots(i, j)
+        result += sr_consts.gamma * mel.n_dot_s(i, j, basis_fns, s_qn, j_qn)
 
         spin_rotation_cd_consts: list[float] = [
             sr_consts.gamma_D,
@@ -474,8 +301,8 @@ def h_spin_rotation(
                     Fraction(1, 2)
                     * const
                     * (
-                        mel_ndots(i, k) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel_ndots(k, j)
+                        mel.n_dot_s(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.n_dot_s(k, j, basis_fns, s_qn, j_qn)
                     )
                 )
 
@@ -487,9 +314,9 @@ def h_spin_rotation(
                 result += (
                     -Fraction(1, 2)
                     * sr_consts.gamma_S
-                    * (mel_s2(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
-                    * mel_jm(j_qn, omega_qn_j)
-                    * mel_sp(s_qn, sigma_qn_j)
+                    * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
+                    * mel.j_minus(j_qn, omega_qn_j)
+                    * mel.s_plus(s_qn, sigma_qn_j)
                 )
 
             # ⟨J, S, Ω - 1, Σ - 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
@@ -498,9 +325,9 @@ def h_spin_rotation(
                 result += (
                     -Fraction(1, 2)
                     * sr_consts.gamma_S
-                    * (mel_s2(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
-                    * mel_jp(j_qn, omega_qn_j)
-                    * mel_sm(s_qn, sigma_qn_j)
+                    * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
+                    * mel.j_plus(j_qn, omega_qn_j)
+                    * mel.s_minus(s_qn, sigma_qn_j)
                 )
 
     return result
@@ -542,96 +369,24 @@ def h_lambda_doubling(
 
     result: float = 0.0
 
-    def mel_sp2_sm2(m: int, n: int) -> float:
-        """Return matrix elements for the S+^2 + S-^2 operator.
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            float: Matrix elements for S+^2 + S-^2
-        """
-        lambda_qn_m, sigma_qn_m, _ = basis_fns[m]
-        lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
-
-        # ⟨Λ - 2, Σ + 2|S+^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
-        if lambda_qn_m == lambda_qn_n - 2 and sigma_qn_m == sigma_qn_n + 2:
-            return mel_sp(s_qn, sigma_qn_n) * mel_sp(s_qn, sigma_qn_n + 1)
-
-        # ⟨Λ + 2, Σ - 2|S-^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
-        if lambda_qn_m == lambda_qn_n + 2 and sigma_qn_m == sigma_qn_n - 2:
-            return mel_sm(s_qn, sigma_qn_n) * mel_sm(s_qn, sigma_qn_n - 1)
-
-        return 0.0
-
-    def mel_jpsp_jmsm(m: int, n: int) -> float:
-        """Return matrix elements for the J+S+ + J-S- operator.
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            float: Matrix elements for J+S+ + J-S-
-        """
-        lambda_qn_m, sigma_qn_m, omega_qn_m = basis_fns[m]
-        lambda_qn_n, sigma_qn_n, omega_qn_n = basis_fns[n]
-
-        # ⟨Λ - 2, Ω - 1, Σ + 1|J+S+|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-        if (
-            lambda_qn_m == lambda_qn_n - 2
-            and sigma_qn_m == sigma_qn_n + 1
-            and omega_qn_m == omega_qn_n - 1
-        ):
-            return mel_jp(j_qn, omega_qn_n) * mel_sp(s_qn, sigma_qn_n)
-
-        # ⟨Λ + 2, Ω + 1, Σ - 1|J-S-|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-        if (
-            lambda_qn_m == lambda_qn_n + 2
-            and sigma_qn_m == sigma_qn_n - 1
-            and omega_qn_m == omega_qn_n + 1
-        ):
-            return mel_jm(j_qn, omega_qn_n) * mel_sm(s_qn, sigma_qn_n)
-
-        return 0.0
-
-    def mel_jp2_jm2(m: int, n: int) -> float:
-        """Return matrix elements for the J+^2 + J-^2 operator.
-
-        Args:
-            m (int): Dummy index m for the bra vector (row)
-            n (int): Dummy index n for the ket vector (col)
-
-        Returns:
-            float: Matrix elements for J+^2 + J-^2
-        """
-        lambda_qn_m, _, omega_qn_m = basis_fns[m]
-        lambda_qn_n, _, omega_qn_n = basis_fns[n]
-
-        # NOTE: 25/05/29 - The Ω - 1 being plugged into the second J+ matrix element occurs since J
-        #       is an anomalously commutative operator.
-        # ⟨Λ - 2, Ω - 2|J+^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
-        if lambda_qn_m == lambda_qn_n - 2 and omega_qn_m == omega_qn_n - 2:
-            return mel_jp(j_qn, omega_qn_n) * mel_jp(j_qn, omega_qn_n - 1)
-
-        # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
-        # ⟨Λ + 2, Ω + 2|J-^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
-        if lambda_qn_m == lambda_qn_n + 2 and omega_qn_m == omega_qn_n + 2:
-            return mel_jm(j_qn, omega_qn_n) * mel_jm(j_qn, omega_qn_n + 1)
-
-        return 0.0
-
     # Lambda doubling is only defined for Λ ± 2 transitions.
     if abs(lambda_qn_i - lambda_qn_j) == 2:
         # 0.5(o + p + q)(S+^2 + S-^2)
-        result += Fraction(1, 2) * (ld_consts.o + ld_consts.p + ld_consts.q) * mel_sp2_sm2(i, j)
+        result += (
+            Fraction(1, 2)
+            * (ld_consts.o + ld_consts.p + ld_consts.q)
+            * mel.sp2_plus_sm2(i, j, basis_fns, s_qn)
+        )
 
         # -0.5(p + 2q)(J+S+ + J-S-)
-        result += -Fraction(1, 2) * (ld_consts.p + 2 * ld_consts.q) * mel_jpsp_jmsm(i, j)
+        result += (
+            -Fraction(1, 2)
+            * (ld_consts.p + 2 * ld_consts.q)
+            * mel.jpsp_plus_jmsm(i, j, basis_fns, s_qn, j_qn)
+        )
 
         # q/2(J+^2 + J-^2)
-        result += Fraction(1, 2) * ld_consts.q * mel_jp2_jm2(i, j)
+        result += Fraction(1, 2) * ld_consts.q * mel.jp2_plus_jm2(i, j, basis_fns, j_qn)
 
         lambda_doubling_cd_consts_opq: list[float] = [
             ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
@@ -660,8 +415,8 @@ def h_lambda_doubling(
                     Fraction(1, 4)
                     * const
                     * (
-                        mel_sp2_sm2(i, k) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel_sp2_sm2(k, j)
+                        mel.sp2_plus_sm2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.sp2_plus_sm2(k, j, basis_fns, s_qn)
                     )
                 )
 
@@ -674,8 +429,8 @@ def h_lambda_doubling(
                     -Fraction(1, 4)
                     * const
                     * (
-                        mel_jpsp_jmsm(i, k) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel_jpsp_jmsm(k, j)
+                        mel.jpsp_plus_jmsm(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.jpsp_plus_jmsm(k, j, basis_fns, s_qn, j_qn)
                     )
                 )
 
@@ -688,8 +443,8 @@ def h_lambda_doubling(
                     Fraction(1, 4)
                     * const
                     * (
-                        mel_jp2_jm2(i, k) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel_jp2_jm2(k, j)
+                        mel.jp2_plus_jm2(i, k, basis_fns, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.jp2_plus_jm2(k, j, basis_fns, j_qn)
                     )
                 )
 

@@ -36,7 +36,7 @@ H_{ld} &= 0
 \textbf{Hamiltonian matrix:}
 \begin{equation*}
 \resizebox{\linewidth}{!}{$
-\left[\begin{matrix}B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} & \frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16}\\\frac{\sqrt{4 x + 1} \left(- 8 B + 4 D \left(4 x + 1\right) + 4 \gamma + \gamma_{D} \left(4 x + 5\right)\right)}{16} & B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4}\end{matrix}\right]
+\left[\begin{matrix}1.0 B x + 0.25 B - 1.0 D x^{2} - 1.5 D x - 0.3125 D - 0.5 \gamma - 1.0 \gamma_{D} x - 0.25 \gamma_{D} & \sqrt{4 x + 1} \left(- 0.5 B + 0.25 D \left(4 x + 1\right) + 0.25 \gamma + \gamma_{D} \left(0.25 x + 0.3125\right)\right)\\\sqrt{4 x + 1} \left(- 0.5 B + 0.25 D \left(4 x + 1\right) + 0.25 \gamma + \gamma_{D} \left(0.25 x + 0.3125\right)\right) & 1.0 B x + 0.25 B - 1.0 D x^{2} - 1.5 D x - 0.3125 D - 0.5 \gamma - 1.0 \gamma_{D} x - 0.25 \gamma_{D}\end{matrix}\right]
 $}
 \end{equation*}
 
@@ -44,8 +44,8 @@ $}
 \begin{equation*}
 \resizebox{\linewidth}{!}{$
 \begin{aligned}
-F_{1} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} - \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
-F_{2} &= B x + \frac{B}{4} - D x^{2} - \frac{3 D x}{2} - \frac{5 D}{16} - \frac{\gamma}{2} - \gamma_{D} x - \frac{\gamma_{D}}{4} + \sqrt{4 x + 1} \left(- \frac{B}{2} + D x + \frac{D}{4} + \frac{\gamma}{4} + \frac{\gamma_{D} x}{4} + \frac{5 \gamma_{D}}{16}\right) \\
+F_{1} &= 1.0 B x + 0.25 B - 1.0 D x^{2} - 1.5 D x - 0.3125 D - 0.5 \gamma - 1.0 \gamma_{D} x - 0.25 \gamma_{D} - \sqrt{16.0 x + 4.0} \left(- 0.25 B + 0.5 D x + 0.125 D + 0.125 \gamma + 0.125 \gamma_{D} x + 0.15625 \gamma_{D}\right) \\
+F_{2} &= 1.0 B x + 0.25 B - 1.0 D x^{2} - 1.5 D x - 0.3125 D - 0.5 \gamma - 1.0 \gamma_{D} x - 0.25 \gamma_{D} + \sqrt{16.0 x + 4.0} \left(- 0.25 B + 0.5 D x + 0.125 D + 0.125 \gamma + 0.125 \gamma_{D} x + 0.15625 \gamma_{D}\right) \\
 \end{aligned}
 $}
 \end{equation*}
