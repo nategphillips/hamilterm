@@ -18,12 +18,91 @@
 
 import subprocess
 from fractions import Fraction
+from functools import cached_property
 from pathlib import Path
 from typing import cast
 
 import sympy as sp
 
-from hamilterm import constants, options, utils
+from hamilterm import constants, options, symmat, terms, utils
+
+
+class SymbolicComputation:
+    """Symbolically compute the Hamiltonian for a given J."""
+
+    def __init__(
+        self, term_symbol: str, consts: constants.SymbolicConstants, j_qn: sp.Symbol
+    ) -> None:
+        """Initialize class variables.
+
+        Args:
+            term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
+            consts (constants.NumericConstants): Molecular constants
+            j_qn (sp.Symbol): Quantum number J
+        """
+        self.term_symbol: str = term_symbol
+        self.consts: constants.SymbolicConstants = consts
+        self.j_qn: sp.Symbol = j_qn
+
+    @cached_property
+    def hamiltonian(self) -> sp.MutableDenseMatrix:
+        """Build a Hamiltonian matrix for symbolic computation.
+
+        Returns:
+            sp.MutableDenseMatrix: Hamiltonian matrix
+        """
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+
+        dim: int = len(basis_fns)
+        n_op_mats = utils.construct_n_operator_matrices(basis_fns, s_qn, self.j_qn)
+
+        h_mat: sp.MutableDenseMatrix = sp.zeros(dim)
+
+        switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
+            int,
+            [
+                options.INCLUDE_R,
+                options.INCLUDE_SO,
+                options.INCLUDE_SS,
+                options.INCLUDE_SR,
+                options.INCLUDE_LD,
+            ],
+        )
+
+        n_op_mats = cast("list[symmat.SymbolicMatrix[sp.Expr]]", n_op_mats)
+
+        for i in range(dim):
+            for j in range(dim):
+                h_mat[i, j] = (
+                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
+                    + switch_so
+                    * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_orbit)
+                    + switch_ss
+                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_spin)
+                    + switch_sr
+                    * terms.spin_rotation(
+                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.spin_rotation
+                    )
+                    + switch_ld
+                    * terms.lambda_doubling(
+                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.lambda_doubling
+                    )
+                )
+
+        x: sp.Symbol = sp.symbols("x")
+
+        return h_mat.subs(self.j_qn * (self.j_qn + 1), x).applyfunc(sp.simplify)
+
+    @cached_property
+    def eigenvalues(self):
+        """Eigenvalues of the Hamiltonian matrix."""
+        return self.hamiltonian.eigenvals()
+
+    @cached_property
+    def eigenvectors(self):
+        """Eigenvectors of the Hamiltonian matrix."""
+        return self.hamiltonian.eigenvects()
 
 
 class AntiCommutator(sp.Expr):
@@ -236,12 +315,11 @@ def main() -> None:
 
     s_qn, lambda_qn = utils.parse_term_symbol(term_symbol)
     basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
-    h_mat: sp.MutableDenseMatrix = (
-        utils.build_hamiltonian(basis_fns, s_qn, j_qn, consts)
-        .subs(j_qn * (j_qn + 1), x)
-        .applyfunc(sp.simplify)
-    )
-    eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", h_mat.eigenvals())
+
+    comp: SymbolicComputation = SymbolicComputation(term_symbol, consts, j_qn)
+
+    h_mat: sp.MutableDenseMatrix = comp.hamiltonian
+    eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", comp.eigenvalues)
     eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
 
     h_r, h_so, h_ss, h_sr, h_ld = included_hamiltonian_terms(s_qn, j_qn, lambda_qn, consts)

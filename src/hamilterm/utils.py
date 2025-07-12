@@ -17,17 +17,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from fractions import Fraction
-from typing import TYPE_CHECKING, cast, overload
+from typing import overload
 
 import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
 
-from hamilterm import constants, options, terms
 from hamilterm import elements as mel
-
-if TYPE_CHECKING:
-    from hamilterm.symmat import SymbolicMatrix
+from hamilterm import options
 
 
 @overload
@@ -84,103 +81,6 @@ def construct_n_operator_matrices(
         n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
 
     return n_op_mats
-
-
-@overload
-def build_hamiltonian(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: int,
-    consts: constants.NumericConstants,
-) -> NDArray[np.float64]: ...
-
-
-@overload
-def build_hamiltonian(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: sp.Symbol,
-    consts: constants.SymbolicConstants,
-) -> sp.MutableDenseMatrix: ...
-
-
-def build_hamiltonian(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: int | sp.Symbol,
-    consts: constants.NumericConstants | constants.SymbolicConstants,
-) -> NDArray[np.float64] | sp.MutableDenseMatrix:
-    """Build Hamiltonian matrix for either numeric or symbolic computation.
-
-    This function is overloaded to provide proper type hints while maintaining
-    a single implementation.
-    """
-    dim: int = len(basis_fns)
-    is_symbolic = isinstance(j_qn, sp.Symbol)
-    n_op_mats = construct_n_operator_matrices(basis_fns, s_qn, j_qn)
-
-    h_mat: sp.MutableDenseMatrix | NDArray[np.float64] = (
-        sp.zeros(dim) if is_symbolic else np.zeros((dim, dim))
-    )
-
-    switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
-        int,
-        [
-            options.INCLUDE_R,
-            options.INCLUDE_SO,
-            options.INCLUDE_SS,
-            options.INCLUDE_SR,
-            options.INCLUDE_LD,
-        ],
-    )
-
-    # TODO: 25/07/12 - I'm aware that this is really janky, but I'm not sure how to get the type
-    #       checker to narrow down while not repeating code. Oh, well; it works fine.
-
-    if is_symbolic:
-        assert isinstance(consts, constants.SymbolicConstants)
-        n_op_mats = cast("list[SymbolicMatrix[sp.Expr]]", n_op_mats)
-
-        for i in range(dim):
-            for j in range(dim):
-                h_mat[i, j] = (
-                    switch_r * terms.rotational(i, j, n_op_mats, consts.rotational)
-                    + switch_so
-                    * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, consts.spin_orbit)
-                    + switch_ss
-                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, consts.spin_spin)
-                    + switch_sr
-                    * terms.spin_rotation(
-                        i, j, basis_fns, s_qn, j_qn, n_op_mats, consts.spin_rotation
-                    )
-                    + switch_ld
-                    * terms.lambda_doubling(
-                        i, j, basis_fns, s_qn, j_qn, n_op_mats, consts.lambda_doubling
-                    )
-                )
-    else:
-        assert isinstance(consts, constants.NumericConstants)
-        n_op_mats = cast("list[NDArray[np.float64]]", n_op_mats)
-
-        for i in range(dim):
-            for j in range(dim):
-                h_mat[i, j] = (
-                    switch_r * terms.rotational(i, j, n_op_mats, consts.rotational)
-                    + switch_so
-                    * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, consts.spin_orbit)
-                    + switch_ss
-                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, consts.spin_spin)
-                    + switch_sr
-                    * terms.spin_rotation(
-                        i, j, basis_fns, s_qn, j_qn, n_op_mats, consts.spin_rotation
-                    )
-                    + switch_ld
-                    * terms.lambda_doubling(
-                        i, j, basis_fns, s_qn, j_qn, n_op_mats, consts.lambda_doubling
-                    )
-                )
-
-    return h_mat
 
 
 def parse_term_symbol(term_symbol: str) -> tuple[Fraction, int]:
