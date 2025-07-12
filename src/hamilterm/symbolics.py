@@ -104,6 +104,139 @@ class SymbolicComputation:
         """Eigenvectors of the Hamiltonian matrix."""
         return self.hamiltonian.eigenvects()
 
+    def print_to_terminal(self) -> None:
+        """Output general info, basis states, the Hamiltonian, and eigenvalues to the terminal."""
+        print("Info:")
+        print(f" • Computed up to N^{options.MAX_N_POWER}")
+        print(f" • max anticommutator value N^{options.MAX_N_ACOMM_POWER}")
+
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+
+        print("\nTerm symbol:")
+        print(
+            f" • {self.term_symbol[0]}{options.LAMBDA_STR_MAP[self.term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}"
+        )
+
+        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+
+        print("\nBasis states |Λ, Σ, Ω>:")
+        for state in basis_fns:
+            print(rf" • |{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
+
+        h_r, h_so, h_ss, h_sr, h_ld = included_hamiltonian_terms(
+            s_qn, self.j_qn, lambda_qn, self.consts
+        )
+
+        print("\nHamiltonian H = H_r + H_so + H_ss + H_sr + H_ld:")
+        print("H_r:")
+        sp.pprint(h_r)
+        print("H_so:")
+        sp.pprint(h_so)
+        print("H_ss:")
+        sp.pprint(h_ss)
+        print("H_sr:")
+        sp.pprint(h_sr)
+        print("H_ld:")
+        sp.pprint(h_ld)
+
+        print("\nHamiltonian matrix:")
+        sp.pprint(self.hamiltonian)
+
+        eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", self.eigenvalues)
+        eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
+
+        print("\nEigenvalues:")
+        for eigenval in eigenval_list:
+            sp.pprint(eigenval)
+
+    def print_to_tex(self) -> None:
+        """Output general info, basis states, the Hamiltonian, and eigenvalues to a tex file."""
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+
+        tex_term: str = rf"\item $^{self.term_symbol[0]}\{self.term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_ham: str = sp.latex(self.hamiltonian)
+
+        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+
+        basis_items: list[str] = []
+        for lam, sig, ome in basis_fns:
+            basis_items.append(
+                rf"\item $\lvert {fsn(lam, tex=True)},\,{fsn(sig, tex=True)},\,{fsn(ome, tex=True)}\rangle$"
+            )
+
+        lines: list[str] = [
+            r"\documentclass[12pt,fleqn]{article}",
+            r"\usepackage[margin=0.25in]{geometry}",
+            r"\usepackage{amsmath,amssymb,bm,parskip}",
+            r"\usepackage{graphicx}",
+            r"\begin{document}",
+            r"\pagestyle{empty}",
+            "",
+            r"\textbf{Info:}",
+            r"\begin{itemize}",
+            rf"\item Computed up to $\bm{{N}}^{options.MAX_N_POWER}$",
+            rf"\item Max anticommutator value $\bm{{N}}^{options.MAX_N_ACOMM_POWER}",
+            r"\end{itemize}",
+            "",
+            r"\textbf{Term symbol:}",
+            r"\begin{itemize}",
+            tex_term,
+            r"\end{itemize}",
+            "",
+            r"\textbf{Basis states $\lvert \Lambda,\Sigma,\Omega\rangle$:}",
+            r"\begin{itemize}",
+        ]
+        lines += basis_items
+
+        h_r, h_so, h_ss, h_sr, h_ld = included_hamiltonian_terms(
+            s_qn, self.j_qn, lambda_qn, self.consts
+        )
+
+        lines += [
+            r"\end{itemize}",
+            "",
+            r"\textbf{Hamiltonian $H = H_r + H_{so} + H_{ss} + H_{sr} + H_{ld}$:}",
+            r"\begin{equation*}",
+            r"\begin{aligned}",
+            rf"H_r &= {sp.latex(h_r)} \\",
+            rf"H_{{so}} &= {sp.latex(h_so)} \\",
+            rf"H_{{ss}} &= {sp.latex(h_ss)} \\",
+            rf"H_{{sr}} &= {sp.latex(h_sr)} \\",
+            rf"H_{{ld}} &= {sp.latex(h_ld)}",
+            r"\end{aligned}",
+            r"\end{equation*}",
+            "",
+            r"\textbf{Hamiltonian matrix:}",
+            r"\begin{equation*}",
+            r"\resizebox{\linewidth}{!}{$",
+            tex_ham,
+            r"$}",
+            r"\end{equation*}",
+            "",
+            r"\textbf{Eigenvalues:}",
+            r"\begin{equation*}",
+            r"\resizebox{\linewidth}{!}{$",
+            r"\begin{aligned}",
+        ]
+
+        eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", self.eigenvalues)
+        eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
+
+        for idx, eigenval in enumerate(eigenval_list, start=1):
+            lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval)} \\")
+
+        lines += [r"\end{aligned}", r"$}", r"\end{equation*}", "", r"\end{document}"]
+
+        tex_str: str = "\n".join(lines)
+
+        filedir: Path = Path("../../docs/main.tex")
+        workdir: Path = Path("../../docs/")
+
+        with open(filedir, "w") as file:
+            file.write(tex_str)
+
+        subprocess.run(["pdflatex", "-interaction=batchmode", "main.tex"], cwd=workdir, check=False)
+
 
 class AntiCommutator(sp.Expr):
     """Represents the anticommutator [A, B]_+."""
@@ -307,132 +440,15 @@ def fsn(num: int | Fraction | sp.Expr, tex: bool = False) -> str:
 
 def main() -> None:
     """Entry point."""
-    # Rotational quantum number J and the shorthand x = J(J + 1).
-    j_qn, x = sp.symbols("J, x")
+    j_qn: sp.Symbol = sp.symbols("J")
     term_symbol: str = "2Sigma"
 
     consts: constants.SymbolicConstants = constants.SymbolicConstants()
 
-    s_qn, lambda_qn = utils.parse_term_symbol(term_symbol)
-    basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
-
     comp: SymbolicComputation = SymbolicComputation(term_symbol, consts, j_qn)
 
-    h_mat: sp.MutableDenseMatrix = comp.hamiltonian
-    eigenval_dict: dict[sp.Expr, int] = cast("dict[sp.Expr, int]", comp.eigenvalues)
-    eigenval_list: list[sp.Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
-
-    h_r, h_so, h_ss, h_sr, h_ld = included_hamiltonian_terms(s_qn, j_qn, lambda_qn, consts)
-
-    if options.PRINT_TERM:
-        print("Info:")
-        print(f" • Computed up to N^{options.MAX_N_POWER}")
-        print(f" • max anticommutator value N^{options.MAX_N_ACOMM_POWER}")
-
-        print("\nTerm symbol:")
-        print(
-            f" • {term_symbol[0]}{options.LAMBDA_STR_MAP[term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}"
-        )
-
-        print("\nBasis states |Λ, Σ, Ω>:")
-        for state in basis_fns:
-            print(rf" • |{fsn(state[0])}, {fsn(state[1])}, {fsn(state[2])}>")
-
-        print("\nHamiltonian H = H_r + H_so + H_ss + H_sr + H_ld:")
-        print("H_r:")
-        sp.pprint(h_r)
-        print("H_so:")
-        sp.pprint(h_so)
-        print("H_ss:")
-        sp.pprint(h_ss)
-        print("H_sr:")
-        sp.pprint(h_sr)
-        print("H_ld:")
-        sp.pprint(h_ld)
-
-        print("\nHamiltonian matrix:")
-        sp.pprint(h_mat)
-
-        print("\nEigenvalues:")
-        for eigenval in eigenval_list:
-            sp.pprint(eigenval)
-
-    if options.PRINT_TEX:
-        tex_term: str = (
-            rf"\item $^{term_symbol[0]}\{term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
-        )
-        tex_ham: str = sp.latex(h_mat)
-
-        basis_items: list[str] = []
-        for lam, sig, ome in basis_fns:
-            basis_items.append(
-                rf"\item $\lvert {fsn(lam, tex=True)},\,{fsn(sig, tex=True)},\,{fsn(ome, tex=True)}\rangle$"
-            )
-
-        lines: list[str] = [
-            r"\documentclass[12pt,fleqn]{article}",
-            r"\usepackage[margin=0.25in]{geometry}",
-            r"\usepackage{amsmath,amssymb,bm,parskip}",
-            r"\usepackage{graphicx}",
-            r"\begin{document}",
-            r"\pagestyle{empty}",
-            "",
-            r"\textbf{Info:}",
-            r"\begin{itemize}",
-            rf"\item Computed up to $\bm{{N}}^{options.MAX_N_POWER}$",
-            rf"\item Max anticommutator value $\bm{{N}}^{options.MAX_N_ACOMM_POWER}",
-            r"\end{itemize}",
-            "",
-            r"\textbf{Term symbol:}",
-            r"\begin{itemize}",
-            tex_term,
-            r"\end{itemize}",
-            "",
-            r"\textbf{Basis states $\lvert \Lambda,\Sigma,\Omega\rangle$:}",
-            r"\begin{itemize}",
-        ]
-        lines += basis_items
-        lines += [
-            r"\end{itemize}",
-            "",
-            r"\textbf{Hamiltonian $H = H_r + H_{so} + H_{ss} + H_{sr} + H_{ld}$:}",
-            r"\begin{equation*}",
-            r"\begin{aligned}",
-            rf"H_r &= {sp.latex(h_r)} \\",
-            rf"H_{{so}} &= {sp.latex(h_so)} \\",
-            rf"H_{{ss}} &= {sp.latex(h_ss)} \\",
-            rf"H_{{sr}} &= {sp.latex(h_sr)} \\",
-            rf"H_{{ld}} &= {sp.latex(h_ld)}",
-            r"\end{aligned}",
-            r"\end{equation*}",
-            "",
-            r"\textbf{Hamiltonian matrix:}",
-            r"\begin{equation*}",
-            r"\resizebox{\linewidth}{!}{$",
-            tex_ham,
-            r"$}",
-            r"\end{equation*}",
-            "",
-            r"\textbf{Eigenvalues:}",
-            r"\begin{equation*}",
-            r"\resizebox{\linewidth}{!}{$",
-            r"\begin{aligned}",
-        ]
-
-        for idx, eigenval in enumerate(eigenval_list, start=1):
-            lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval)} \\")
-
-        lines += [r"\end{aligned}", r"$}", r"\end{equation*}", "", r"\end{document}"]
-
-        tex_str: str = "\n".join(lines)
-
-        filedir: Path = Path("../../docs/main.tex")
-        workdir: Path = Path("../../docs/")
-
-        with open(filedir, "w") as file:
-            file.write(tex_str)
-
-        subprocess.run(["pdflatex", "-interaction=batchmode", "main.tex"], cwd=workdir, check=False)
+    comp.print_to_terminal()
+    comp.print_to_tex()
 
 
 if __name__ == "__main__":
