@@ -24,6 +24,8 @@ import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
 
+from hamilterm import utils
+
 
 @overload
 def j_squared(j_qn: int) -> int: ...
@@ -71,6 +73,10 @@ def j_plus(j_qn: int | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
     return sp.sqrt(result)
 
 
+def j_plus_vec(j_qn: int, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
+
+
 @overload
 def j_minus(j_qn: int, omega_qn_j: Fraction) -> float: ...
 
@@ -95,6 +101,10 @@ def j_minus(j_qn: int | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
         return math.sqrt(result)
 
     return sp.sqrt(result)
+
+
+def j_minus_vec(j_qn: int, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
 def s_squared(s_qn: Fraction) -> Fraction:
@@ -126,6 +136,10 @@ def s_plus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
     return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
+def s_plus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
+
+
 def s_minus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
 
@@ -137,6 +151,10 @@ def s_minus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
         float: Matrix element [S(S + 1) - Σ(Σ - 1)]^(1/2)
     """
     return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
+
+
+def s_minus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
 
 @overload
@@ -300,6 +318,43 @@ def n_dot_s(
         return Fraction(1, 2) * j_minus(j_qn, omega_qn_n) * s_plus(s_qn, sigma_qn_n)
 
     return 0.0
+
+
+def n_dot_s_vec(
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
+    s_qn: float,
+    j_qn: int,
+) -> NDArray[np.float64]:
+    dim: int = sigma_basis.size
+
+    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
+    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+
+    result: NDArray[np.float64] = np.zeros((dim, dim))
+
+    # Fully diagonal matrix element ⟨S, Ω, Σ|JzSz - S^2|S, Ω, Σ⟩ = ΩΣ - S(S + 1)
+    np.fill_diagonal(result, omega_basis * sigma_basis - s_squared_vec(s_qn))
+
+    # Create masks to denote where the off-diagonal array elements are
+    # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
+    mask_minus: NDArray[np.bool] = (omega_i == omega_j - 1) & (sigma_i == sigma_j - 1)
+    # Denote the areas in the array where Ω_i = Ω_j + 1 and Σ_i = Σ_j + 1
+    mask_plus: NDArray[np.bool] = (omega_i == omega_j + 1) & (sigma_i == sigma_j + 1)
+
+    # TODO: 25/07/16 - This method computes the following elements for all locations in the matrix,
+    #       after which the masks are applied. It might be a bit more efficient to only compute
+    #       these where the mask is true, maybe by applying the mask to the Ω and Σ matrices first.
+
+    # ⟨J, S, Ω - 1, Σ - 1|0.5(J+S-)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+    term_minus: NDArray[np.float64] = 0.5 * j_plus_vec(j_qn, omega_j) * s_minus_vec(s_qn, sigma_j)
+    # ⟨J, S, Ω + 1, Σ + 1|0.5(J-S+)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+    term_plus: NDArray[np.float64] = 0.5 * j_minus_vec(j_qn, omega_j) * s_plus_vec(s_qn, sigma_j)
+
+    result[mask_minus] = term_minus[mask_minus]
+    result[mask_plus] = term_plus[mask_plus]
+
+    return result
 
 
 def sp2_plus_sm2(

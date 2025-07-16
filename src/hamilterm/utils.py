@@ -125,16 +125,16 @@ def generate_basis_fns(s_qn: Fraction, lambda_qn: int) -> list[tuple[int, Fracti
     return basis_fns
 
 
-def basis_arrays(
+def basis_vectors(
     basis_fns: list[tuple[int, Fraction, Fraction]],
 ) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
     """Construct basis arrays of Λ, Σ, and Ω for use with vectorized functions.
 
     Args:
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis functions |Λ, Σ; Ω>
 
     Returns:
-        tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]: Basis arrays for Λ, Σ,
+        tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]: Basis vectors for Λ, Σ,
             and Ω
     """
     dim: int = len(basis_fns)
@@ -148,3 +148,41 @@ def basis_arrays(
         omega_basis[i] = float(omg)
 
     return lambda_basis, sigma_basis, omega_basis
+
+
+def form_basis_matrices(basis_vector: NDArray) -> tuple[NDArray, NDArray]:
+    """Constructs basis matrices for i and j given a basis vector.
+
+    A basis vector will look something like `[-1, 0, 1]`. To create masks and perform element-wise
+    logic, we need to form basis matrices. For the i matrices, each row is filled with the same
+    number. For the j matrices, each column is filled with the same number. As an example, a basis
+    of `[-1, 0, 1]` would form:
+
+    ```
+    M_j = [[-1, 0, 1], and M_i = [[-1, -1, -1],
+           [-1, 0, 1],            [0 ,  0,  0],
+           [-1, 0, 1]]            [1 ,  1,  1]]
+    ```
+
+    The i matrices are formed by stacking column vectors rightward, while the j matrices are
+    formed by stacking row vectors downward. This is more obvious when a sample Hamiltonian is
+    labeled with its basis states:
+
+    ```
+                j
+           -1   0   1
+      -1 |             |
+    i  0 | Hamiltonian |
+       1 |             |
+    ```
+
+    Args:
+        basis_vector (NDArray): A basis vector for Λ, Σ, or Ω
+
+    Returns:
+        tuple[NDArray, NDArray]: Basis matrices for i and j
+    """
+    basis_matrix_j: NDArray = np.tile(basis_vector, (basis_vector.size, 1))
+    basis_matrix_i: NDArray = basis_matrix_j.T
+
+    return basis_matrix_i, basis_matrix_j

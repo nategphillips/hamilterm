@@ -23,7 +23,7 @@ import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
 
-from hamilterm import constants, options
+from hamilterm import constants, options, utils
 from hamilterm import elements as mel
 from hamilterm.symmat import SymbolicMatrix
 
@@ -186,7 +186,7 @@ def spin_orbit_vec(
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConsts[float],
 ) -> NDArray[np.float64]:
-    dim: int = lambda_basis.shape[0]
+    dim: int = lambda_basis.size
 
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. Since the Λ values in the
     # basis functions range from -Λ to +Λ, make sure to get the absolute value, |Λ|.
@@ -197,18 +197,20 @@ def spin_orbit_vec(
     lz_sz: NDArray[np.float64] = mel.lz_sz_vec(lambda_basis, sigma_basis)
     result: NDArray[np.float64] = so_consts.A * lz_sz
 
-    spin_orbit_cd_consts: list[float] = [
-        so_consts.A_D,
-        so_consts.A_H,
-        so_consts.A_L,
-        so_consts.A_M,
-    ][: options.MAX_ACOMM_INDEX]
+    spin_orbit_cd_consts: NDArray[np.float64] = np.array(
+        [
+            so_consts.A_D,
+            so_consts.A_H,
+            so_consts.A_L,
+            so_consts.A_M,
+        ]
+    )[: options.MAX_ACOMM_INDEX]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
     #       themselves, this check might be redundant.
 
     # Only evaluate the centrifual distortion terms if at least one constant is supplied.
-    if max(spin_orbit_cd_consts) > 0.0:
+    if spin_orbit_cd_consts.any() != 0.0:
         # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
         for idx, const in enumerate(spin_orbit_cd_consts):
             # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
@@ -323,26 +325,25 @@ def spin_spin_vec(
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConsts[float],
 ) -> NDArray[np.float64]:
-    dim: int = sigma_basis.shape[0]
+    dim: int = sigma_basis.size
 
     # Spin-spin coupling is only defined for states with S > 1/2.
-    if s_qn <= Fraction(1, 2):
+    if s_qn <= 0.5:
         return np.zeros((dim, dim))
 
     # 2λ/3(3Sz^2 - S^2)
     three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_vec(sigma_basis, s_qn)
     result: NDArray[np.float64] = (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
 
-    spin_spin_cd_consts: list[float] = [
-        ss_consts.lambda_D,
-        ss_consts.lambda_H,
-    ][: options.MAX_ACOMM_INDEX]
+    spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lambda_D, ss_consts.lambda_H])[
+        : options.MAX_ACOMM_INDEX
+    ]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
     #       themselves, this check might be redundant.
 
     # Only evaluate the centrifual distortion terms if at least one constant is supplied.
-    if max(spin_spin_cd_consts) > 0.0:
+    if spin_spin_cd_consts.any() != 0.0:
         # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for idx, const in enumerate(spin_spin_cd_consts):
             # ⟨i|λ_x/3[(3Sz^2 - S^2), N^{2n}]+|j⟩
@@ -476,6 +477,78 @@ def spin_rotation(
                     * mel.j_plus(j_qn, omega_qn_j)
                     * mel.s_minus(s_qn, sigma_qn_j)
                 )
+
+    return result
+
+
+def spin_rotation_vec(
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
+    s_qn: float,
+    j_qn: int,
+    n_op_mats: list[NDArray[np.float64]],
+    sr_consts: constants.SpinRotationConsts[float],
+) -> NDArray[np.float64]:
+    dim: int = sigma_basis.size
+
+    # Spin-rotation coupling is only defined for states with S > 0.
+    if s_qn <= 0.0:
+        return np.zeros((dim, dim))
+
+    # γ(N·S)
+    n_dot_s: NDArray[np.float64] = mel.n_dot_s_vec(sigma_basis, omega_basis, s_qn, j_qn)
+    result: NDArray[np.float64] = sr_consts.gamma * n_dot_s
+
+    spin_rotation_cd_consts: NDArray[np.float64] = np.array(
+        [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L]
+    )[: options.MAX_ACOMM_INDEX]
+
+    # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
+    #       themselves, this check might be redundant.
+
+    # Only evaluate the centrifual distortion terms if at least one constant is supplied.
+    if spin_rotation_cd_consts.any() != 0.0:
+        # γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
+        for idx, const in enumerate(spin_rotation_cd_consts):
+            # ⟨i|γ_x/2[N·S, N^{2n}]+|j⟩ = γ_x/2[⟨i|(N·S)N^{2n}|j⟩ + ⟨i|N^{2n}(N·S)|j⟩]
+            #                           = γ_x/2(∑_k⟨i|N·S|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|N·S|j⟩)
+            #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
+            result += 0.5 * const * (n_dot_s @ n_op_mats[idx] + n_op_mats[idx] @ n_dot_s)
+
+    # -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)} term only valid for states with S > 1.
+    if s_qn > 1.0:
+        # TODO: 25/07/16 - Think about moving this to a separate function in elements.py.
+
+        sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
+        omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+
+        # Create masks to denote where the off-diagonal array elements are
+        # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
+        mask_minus: NDArray[np.bool] = (omega_i == omega_j - 1) & (sigma_i == sigma_j - 1)
+        # Denote the areas in the array where Ω_i = Ω_j + 1 and Σ_i = Σ_j + 1
+        mask_plus: NDArray[np.bool] = (omega_i == omega_j + 1) & (sigma_i == sigma_j + 1)
+
+        # ⟨J, S, Ω - 1, Σ - 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
+        #   = -γ_s/2[S(S + 1) - 5Σ(Σ - 1) + 2]([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+        term_minus: NDArray[np.float64] = (
+            -0.5
+            * sr_consts.gamma_S
+            * (mel.s_squared_vec(s_qn) - 5 * sigma_j * (sigma_j - 1) - 2)
+            * mel.j_plus_vec(j_qn, omega_j)
+            * mel.s_minus_vec(s_qn, sigma_j)
+        )
+        # ⟨J, S, Ω + 1, Σ + 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
+        #   = -γ_S/2[S(S + 1) - 5Σ(Σ + 1) + 2]([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+        term_plus: NDArray[np.float64] = (
+            -0.5
+            * sr_consts.gamma_S
+            * (mel.s_squared_vec(s_qn) - 5 * sigma_j * (sigma_j + 1) - 2)
+            * mel.j_minus_vec(j_qn, omega_j)
+            * mel.s_plus_vec(s_qn, sigma_j)
+        )
+
+        result[mask_minus] += term_minus[mask_minus]
+        result[mask_plus] += term_plus[mask_plus]
 
     return result
 
