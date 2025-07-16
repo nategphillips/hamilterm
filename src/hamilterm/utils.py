@@ -123,3 +123,28 @@ def generate_basis_fns(s_qn: Fraction, lambda_qn: int) -> list[tuple[int, Fracti
             basis_fns.append((lam, sigma, omega))
 
     return basis_fns
+
+
+def basis_arrays(
+    basis_fns: list[tuple[int, Fraction, Fraction]],
+) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
+    """Construct basis arrays of Λ, Σ, and Ω for use with vectorized functions.
+
+    Args:
+        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
+
+    Returns:
+        tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]: Basis arrays for Λ, Σ,
+            and Ω
+    """
+    dim: int = len(basis_fns)
+    lambda_basis: NDArray[np.int64] = np.empty(dim, dtype=np.int64)
+    sigma_basis: NDArray[np.float64] = np.empty(dim, dtype=np.float64)
+    omega_basis: NDArray[np.float64] = np.empty(dim, dtype=np.float64)
+
+    for i, (lam, sig, omg) in enumerate(basis_fns):
+        lambda_basis[i] = lam
+        sigma_basis[i] = float(sig)
+        omega_basis[i] = float(omg)
+
+    return lambda_basis, sigma_basis, omega_basis

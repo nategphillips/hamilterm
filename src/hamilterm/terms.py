@@ -179,6 +179,51 @@ def spin_orbit(
     return result
 
 
+def spin_orbit_vec(
+    lambda_basis: NDArray[np.int64],
+    sigma_basis: NDArray[np.float64],
+    s_qn: Fraction,
+    n_op_mats: list[NDArray[np.float64]],
+    so_consts: constants.SpinOrbitConsts[float],
+) -> NDArray[np.float64]:
+    dim: int = lambda_basis.shape[0]
+
+    # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. Since the Λ values in the
+    # basis functions range from -Λ to +Λ, make sure to get the absolute value, |Λ|.
+    if (np.abs(lambda_basis).max() == 0) or (s_qn <= 0.0):
+        return np.zeros((dim, dim))
+
+    # A(LzSz)
+    lzsz: NDArray[np.float64] = mel.lz_sz_vec(lambda_basis, sigma_basis)
+    result: NDArray[np.float64] = so_consts.A * lzsz
+
+    spin_orbit_cd_consts: list[float] = [
+        so_consts.A_D,
+        so_consts.A_H,
+        so_consts.A_L,
+        so_consts.A_M,
+    ][: options.MAX_ACOMM_INDEX]
+
+    # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
+    #       themselves, this check might be redundant.
+
+    # Only evaluate the centrifual distortion terms if at least one constant is supplied.
+    if max(spin_orbit_cd_consts) > 0.0:
+        # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
+        for idx, const in enumerate(spin_orbit_cd_consts):
+            # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
+            #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
+            #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
+            result += 0.5 * const * (n_op_mats[idx] @ lzsz + lzsz @ n_op_mats[idx])
+
+    # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
+    if s_qn > 1:
+        # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
+        result += so_consts.eta * lzsz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared(s_qn) - 1))
+
+    return result
+
+
 @overload
 def spin_spin(
     i: int,

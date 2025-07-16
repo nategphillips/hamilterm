@@ -20,7 +20,9 @@ import math
 from fractions import Fraction
 from typing import overload
 
+import numpy as np
 import sympy as sp
+from numpy.typing import NDArray
 
 
 @overload
@@ -203,6 +205,14 @@ def lz_sz(m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]]) -> in
         return lambda_qn_n * sigma_qn_n
 
     return 0
+
+
+def lz_sz_vec(
+    lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64]
+) -> NDArray[np.float64]:
+    # Operator is completely diagonal, so only m = n terms exist.
+    # ⟨Λ, Σ|LzSz|Λ, Σ⟩ = ΛΣ
+    return np.diag(lambda_basis * sigma_basis)
 
 
 def sz2_minus_s2(
