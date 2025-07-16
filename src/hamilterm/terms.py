@@ -182,7 +182,7 @@ def spin_orbit(
 def spin_orbit_vec(
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
-    s_qn: Fraction,
+    s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConsts[float],
 ) -> NDArray[np.float64]:
@@ -194,8 +194,8 @@ def spin_orbit_vec(
         return np.zeros((dim, dim))
 
     # A(LzSz)
-    lzsz: NDArray[np.float64] = mel.lz_sz_vec(lambda_basis, sigma_basis)
-    result: NDArray[np.float64] = so_consts.A * lzsz
+    lz_sz: NDArray[np.float64] = mel.lz_sz_vec(lambda_basis, sigma_basis)
+    result: NDArray[np.float64] = so_consts.A * lz_sz
 
     spin_orbit_cd_consts: list[float] = [
         so_consts.A_D,
@@ -214,12 +214,12 @@ def spin_orbit_vec(
             # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
             #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
             #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
-            result += 0.5 * const * (n_op_mats[idx] @ lzsz + lzsz @ n_op_mats[idx])
+            result += 0.5 * const * (n_op_mats[idx] @ lz_sz + lz_sz @ n_op_mats[idx])
 
     # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
-    if s_qn > 1:
+    if s_qn > 1.0:
         # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
-        result += so_consts.eta * lzsz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared(s_qn) - 1))
+        result += so_consts.eta * lz_sz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared_vec(s_qn) - 1))
 
     return result
 
@@ -278,7 +278,7 @@ def spin_spin(
     # Spin-spin coupling is only defined for states with S > 1/2.
     if s_qn > Fraction(1, 2):
         # 2λ/3(3Sz^2 - S^2)
-        result += Fraction(2, 3) * ss_consts.lamda * mel.sz2_minus_s2(i, j, basis_fns, s_qn)
+        result += Fraction(2, 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
 
         spin_spin_cd_consts: list[float | sp.Symbol] = [ss_consts.lambda_D, ss_consts.lambda_H]
 
@@ -293,8 +293,8 @@ def spin_spin(
                     Fraction(1, 3)
                     * const
                     * (
-                        mel.sz2_minus_s2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.sz2_minus_s2(k, j, basis_fns, s_qn)
+                        mel.three_sz2_minus_s2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.three_sz2_minus_s2(k, j, basis_fns, s_qn)
                     )
                 )
 
@@ -313,6 +313,60 @@ def spin_spin(
                     + 3 * mel.s_squared(s_qn) ** 2
                 )
             )
+
+    return result
+
+
+def spin_spin_vec(
+    sigma_basis: NDArray[np.float64],
+    s_qn: float,
+    n_op_mats: list[NDArray[np.float64]],
+    ss_consts: constants.SpinSpinConsts[float],
+) -> NDArray[np.float64]:
+    dim: int = sigma_basis.shape[0]
+
+    # Spin-spin coupling is only defined for states with S > 1/2.
+    if s_qn <= Fraction(1, 2):
+        return np.zeros((dim, dim))
+
+    # 2λ/3(3Sz^2 - S^2)
+    three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_vec(sigma_basis, s_qn)
+    result: NDArray[np.float64] = (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
+
+    spin_spin_cd_consts: list[float] = [
+        ss_consts.lambda_D,
+        ss_consts.lambda_H,
+    ][: options.MAX_ACOMM_INDEX]
+
+    # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
+    #       themselves, this check might be redundant.
+
+    # Only evaluate the centrifual distortion terms if at least one constant is supplied.
+    if max(spin_spin_cd_consts) > 0.0:
+        # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
+        for idx, const in enumerate(spin_spin_cd_consts):
+            # ⟨i|λ_x/3[(3Sz^2 - S^2), N^{2n}]+|j⟩
+            #   = λ_x/3[⟨i|(3Sz^2 - S^2)N^{2n}|j⟩ + ⟨i|N^{2n}(3Sz^2 - S^2)|j⟩]
+            #   = λ_x/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
+            #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
+            result += (const / 3.0) * (
+                three_sz2_minus_s2 @ n_op_mats[idx] + n_op_mats[idx] @ three_sz2_minus_s2
+            )
+
+    # θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4) term only valid for states with S > 3/2.
+    if s_qn > 1.5:
+        # ⟨S, Σ|θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)|S, Σ⟩
+        #   = θ/12(35Σ^4 - 30S(S + 1)Σ^2 + 25Σ^2 - 6S(S + 1) + 3[S(S + 1)]^2)
+        result += np.diag(
+            (ss_consts.theta / 12.0)
+            * (
+                35.0 * sigma_basis**4
+                - 30.0 * mel.s_squared_vec(s_qn) * sigma_basis**2
+                + 25.0 * sigma_basis**2
+                - 6.0 * mel.s_squared_vec(s_qn)
+                + 3.0 * mel.s_squared_vec(s_qn) ** 2
+            )
+        )
 
     return result
 

@@ -109,6 +109,10 @@ def s_squared(s_qn: Fraction) -> Fraction:
     return s_qn * (s_qn + 1)
 
 
+def s_squared_vec(s_qn: float) -> float:
+    return s_qn * (s_qn + 1)
+
+
 def s_plus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
 
@@ -211,11 +215,12 @@ def lz_sz_vec(
     lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64]
 ) -> NDArray[np.float64]:
     # Operator is completely diagonal, so only m = n terms exist.
+
     # ⟨Λ, Σ|LzSz|Λ, Σ⟩ = ΛΣ
     return np.diag(lambda_basis * sigma_basis)
 
 
-def sz2_minus_s2(
+def three_sz2_minus_s2(
     m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction
 ) -> int | Fraction:
     """Return matrix elements for the 3Sz^2 - S^2 operator.
@@ -237,6 +242,13 @@ def sz2_minus_s2(
         return 3 * sigma_qn_n**2 - s_squared(s_qn)
 
     return 0
+
+
+def three_sz2_minus_s2_vec(sigma_basis: NDArray[np.float64], s_qn: float) -> NDArray[np.float64]:
+    # Operator is completely diagonal, so only m = n terms exist.
+
+    # ⟨Λ, Σ|3Sz^2 - S^2|Λ, Σ⟩ = 3Σ^2 - S(S + 1)
+    return np.diag(3 * sigma_basis**2 - s_squared_vec(s_qn))
 
 
 @overload

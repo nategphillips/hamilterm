@@ -117,15 +117,15 @@ class NumericComputation:
             h_mat += terms.rotational_vec(n_op_mats, self.consts.rotational)
         if switch_so:
             h_mat += terms.spin_orbit_vec(
-                lambda_basis, sigma_basis, s_qn, n_op_mats, self.consts.spin_orbit
+                lambda_basis, sigma_basis, float(s_qn), n_op_mats, self.consts.spin_orbit
             )
+        if switch_ss:
+            h_mat += terms.spin_spin_vec(sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin)
 
         for i in range(dim):
             for j in range(dim):
                 h_mat[i, j] += (
-                    switch_ss
-                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_spin)
-                    + switch_sr
+                    switch_sr
                     * terms.spin_rotation(
                         i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.spin_rotation
                     )
