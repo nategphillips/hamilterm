@@ -76,6 +76,19 @@ def rotational(
     )
 
 
+def rotational_vec(
+    n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConsts[float]
+) -> NDArray[np.float64]:
+    return (
+        r_consts.B * n_op_mats[0]
+        - r_consts.D * n_op_mats[1]
+        + r_consts.H * n_op_mats[2]
+        + r_consts.L * n_op_mats[3]
+        + r_consts.M * n_op_mats[4]
+        + r_consts.P * n_op_mats[5]
+    )
+
+
 @overload
 def spin_orbit(
     i: int,

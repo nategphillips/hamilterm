@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import timeit
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -70,11 +71,13 @@ class NumericComputation:
             ],
         )
 
+        if switch_r:
+            h_mat = terms.rotational_vec(n_op_mats, self.consts.rotational)
+
         for i in range(dim):
             for j in range(dim):
-                h_mat[i, j] = (
-                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
-                    + switch_so
+                h_mat[i, j] += (
+                    switch_so
                     * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_orbit)
                     + switch_ss
                     * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_spin)
@@ -133,9 +136,41 @@ def main() -> None:
 
     comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
 
-    print(comp.hamiltonian)
-    print(comp.eigenvalues)
-    print(comp.eigenvectors)
+    def bench():
+        comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
+        _ = comp.hamiltonian
+
+    num = 1000
+    print(f"Computing {num} Hamiltonians took: {timeit.timeit(bench, number=num)} s")
+    # Computing 1000 Hamiltonians (average of 5 runs)
+    # Before vectorizing: 1.00095934399996622
+    # Vectorizing rotational: 0.9950343923997934
+
+    # Once the Hamiltonian has been diagonalized, accessing the eigenvalues and eigenvectors amounts
+    # to just indexing into a list, so it's not worth timing them.
+    comp.eigenvalues
+    comp.eigenvectors
+
+    # Known values to compare against before switching to vectorized functions.
+    known_hamiltonian = np.array(
+        [
+            [2.78103067e00, -1.65434600e00, -1.80000000e-05],
+            [-1.65434600e00, 1.05535867e00, -1.65434600e00],
+            [-1.80000000e-05, -1.65434600e00, 2.78103067e00],
+        ]
+    )
+    known_eigenvalues = np.array([-0.57544458, 2.78104867, 4.41181591])
+    known_eigenvectors = np.array(
+        [
+            [-4.04347497e-01, -7.07106781e-01, -5.80088874e-01],
+            [-8.20369553e-01, -2.30443784e-17, 5.71833715e-01],
+            [-4.04347497e-01, 7.07106781e-01, -5.80088874e-01],
+        ]
+    )
+
+    assert np.allclose(comp.hamiltonian, known_hamiltonian)
+    assert np.allclose(comp.eigenvalues, known_eigenvalues)
+    assert np.allclose(comp.eigenvectors, known_eigenvectors)
 
 
 if __name__ == "__main__":
