@@ -71,6 +71,47 @@ class NumericComputation:
             ],
         )
 
+        for i in range(dim):
+            for j in range(dim):
+                h_mat[i, j] = (
+                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
+                    + switch_so
+                    * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_orbit)
+                    + switch_ss
+                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_spin)
+                    + switch_sr
+                    * terms.spin_rotation(
+                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.spin_rotation
+                    )
+                    + switch_ld
+                    * terms.lambda_doubling(
+                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.lambda_doubling
+                    )
+                )
+
+        return h_mat
+
+    @cached_property
+    def hamiltonian_vec(self) -> NDArray[np.float64]:
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+
+        dim: int = len(basis_fns)
+        n_op_mats = utils.construct_n_operator_matrices(basis_fns, s_qn, self.j_qn)
+
+        h_mat: NDArray[np.float64] = np.zeros((dim, dim))
+
+        switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
+            int,
+            [
+                options.INCLUDE_R,
+                options.INCLUDE_SO,
+                options.INCLUDE_SS,
+                options.INCLUDE_SR,
+                options.INCLUDE_LD,
+            ],
+        )
+
         if switch_r:
             h_mat = terms.rotational_vec(n_op_mats, self.consts.rotational)
 
@@ -136,41 +177,23 @@ def main() -> None:
 
     comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
 
-    def bench():
-        comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
-        _ = comp.hamiltonian
+    def bench_orig():
+        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp.hamiltonian
+
+    def bench_vec():
+        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp.hamiltonian_vec
 
     num = 1000
-    print(f"Computing {num} Hamiltonians took: {timeit.timeit(bench, number=num)} s")
-    # Computing 1000 Hamiltonians (average of 5 runs)
-    # Before vectorizing: 1.00095934399996622
-    # Vectorizing rotational: 0.9950343923997934
+    print(f"{num} Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
+    print(f"{num} Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
 
-    # Once the Hamiltonian has been diagonalized, accessing the eigenvalues and eigenvectors amounts
-    # to just indexing into a list, so it's not worth timing them.
-    comp.eigenvalues
-    comp.eigenvectors
+    evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
 
-    # Known values to compare against before switching to vectorized functions.
-    known_hamiltonian = np.array(
-        [
-            [2.78103067e00, -1.65434600e00, -1.80000000e-05],
-            [-1.65434600e00, 1.05535867e00, -1.65434600e00],
-            [-1.80000000e-05, -1.65434600e00, 2.78103067e00],
-        ]
-    )
-    known_eigenvalues = np.array([-0.57544458, 2.78104867, 4.41181591])
-    known_eigenvectors = np.array(
-        [
-            [-4.04347497e-01, -7.07106781e-01, -5.80088874e-01],
-            [-8.20369553e-01, -2.30443784e-17, 5.71833715e-01],
-            [-4.04347497e-01, 7.07106781e-01, -5.80088874e-01],
-        ]
-    )
-
-    assert np.allclose(comp.hamiltonian, known_hamiltonian)
-    assert np.allclose(comp.eigenvalues, known_eigenvalues)
-    assert np.allclose(comp.eigenvectors, known_eigenvectors)
+    assert np.allclose(comp.hamiltonian, comp.hamiltonian_vec)
+    assert np.allclose(comp.eigenvalues, evals_vec)
+    assert np.allclose(comp.eigenvectors, evects_vec)
 
 
 if __name__ == "__main__":
