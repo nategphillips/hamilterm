@@ -385,6 +385,33 @@ def sp2_plus_sm2(
     return 0.0
 
 
+def sp2_plus_sm2_vec(
+    lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64], s_qn: float
+) -> NDArray[np.float64]:
+    dim: int = lambda_basis.size
+
+    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
+    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
+
+    result: NDArray[np.float64] = np.zeros((dim, dim))
+
+    # Create masks to denote where the off-diagonal array elements are
+    # Denote the areas in the array where Λ_i = Λ_j - 2 and Σ_i = Σ_j + 2
+    mask_plus: NDArray[np.bool] = (lambda_i == lambda_j - 2) & (sigma_i == sigma_j + 2)
+    # Denote the areas in the array where Λ_i = Λ_j + 2 and Σ_i = Σ_j - 2
+    mask_minus: NDArray[np.bool] = (lambda_i == lambda_j + 2) & (sigma_i == sigma_j - 2)
+
+    # ⟨Λ - 2, Σ + 2|S+^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
+    term_plus: NDArray[np.float64] = s_plus_vec(s_qn, sigma_j) * s_plus_vec(s_qn, sigma_j + 1)
+    # ⟨Λ + 2, Σ - 2|S-^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
+    term_minus: NDArray[np.float64] = s_minus_vec(s_qn, sigma_j) * s_minus_vec(s_qn, sigma_j - 1)
+
+    result[mask_plus] = term_plus[mask_plus]
+    result[mask_minus] = term_minus[mask_minus]
+
+    return result
+
+
 @overload
 def jpsp_plus_jmsm(
     m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: int
@@ -438,6 +465,42 @@ def jpsp_plus_jmsm(
     return 0.0
 
 
+def jpsp_plus_jmsm_vec(
+    lambda_basis: NDArray[np.int64],
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
+    s_qn: float,
+    j_qn: int,
+) -> NDArray[np.float64]:
+    dim: int = lambda_basis.size
+
+    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
+    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
+    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+
+    result: NDArray[np.float64] = np.zeros((dim, dim))
+
+    # Create masks to denote where the off-diagonal array elements are
+    # Denote the areas in the array where Λ_i = Λ_j - 2, Ω_i = Ω_j - 1, and Σ_i = Σ_j + 1
+    mask_plus: NDArray[np.bool] = (
+        (lambda_i == lambda_j - 2) & (omega_i == omega_j - 1) & (sigma_i == sigma_j + 1)
+    )
+    # Denote the areas in the array where Λ_i = Λ_j + 2, Ω_i = Ω_j + 1, and Σ_i = Σ_j - 1
+    mask_minus: NDArray[np.bool] = (
+        (lambda_i == lambda_j + 2) & (omega_i == omega_j + 1) & (sigma_i == sigma_j - 1)
+    )
+
+    # ⟨Λ - 2, Ω - 1, Σ + 1|J+S+|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+    term_plus: NDArray[np.float64] = j_plus_vec(j_qn, omega_j) * s_plus_vec(s_qn, sigma_j)
+    # ⟨Λ + 2, Ω + 1, Σ - 1|J-S-|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+    term_minus: NDArray[np.float64] = j_minus_vec(j_qn, omega_j) * s_minus_vec(s_qn, sigma_j)
+
+    result[mask_plus] = term_plus[mask_plus]
+    result[mask_minus] = term_minus[mask_minus]
+
+    return result
+
+
 @overload
 def jp2_plus_jm2(
     m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], j_qn: int
@@ -479,3 +542,33 @@ def jp2_plus_jm2(
         return j_minus(j_qn, omega_qn_n) * j_minus(j_qn, omega_qn_n + 1)
 
     return 0.0
+
+
+def jp2_plus_jm2_vec(
+    lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: int
+) -> NDArray[np.float64]:
+    dim: int = lambda_basis.size
+
+    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
+    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+
+    result: NDArray[np.float64] = np.zeros((dim, dim))
+
+    # Create masks to denote where the off-diagonal array elements are
+    # Denote the areas in the array where Λ_i = Λ_j - 2 and Ω_i = Ω_j - 2
+    mask_plus: NDArray[np.bool] = (lambda_i == lambda_j - 2) & (omega_i == omega_j - 2)
+    # Denote the areas in the array where Λ_i = Λ_j + 2 and Ω_i = Ω_j + 2
+    mask_minus: NDArray[np.bool] = (lambda_i == lambda_j + 2) & (omega_i == omega_j + 2)
+
+    # NOTE: 25/05/29 - The Ω - 1 being plugged into the second J+ matrix element occurs since J
+    #       is an anomalously commutative operator.
+    # ⟨Λ - 2, Ω - 2|J+^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
+    term_plus: NDArray[np.float64] = j_plus_vec(j_qn, omega_j) * j_plus_vec(j_qn, omega_j - 1)
+    # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
+    # ⟨Λ + 2, Ω + 2|J-^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
+    term_minus: NDArray[np.float64] = j_minus_vec(j_qn, omega_j) * j_minus_vec(j_qn, omega_j + 1)
+
+    result[mask_plus] = term_plus[mask_plus]
+    result[mask_minus] = term_minus[mask_minus]
+
+    return result

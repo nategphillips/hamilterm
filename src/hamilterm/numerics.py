@@ -102,26 +102,15 @@ class NumericComputation:
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
-        switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
-            int,
-            [
-                options.INCLUDE_R,
-                options.INCLUDE_SO,
-                options.INCLUDE_SS,
-                options.INCLUDE_SR,
-                options.INCLUDE_LD,
-            ],
-        )
-
-        if switch_r:
+        if options.INCLUDE_R:
             h_mat += terms.rotational_vec(n_op_mats, self.consts.rotational)
-        if switch_so:
+        if options.INCLUDE_SO:
             h_mat += terms.spin_orbit_vec(
                 lambda_basis, sigma_basis, float(s_qn), n_op_mats, self.consts.spin_orbit
             )
-        if switch_ss:
+        if options.INCLUDE_SS:
             h_mat += terms.spin_spin_vec(sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin)
-        if switch_sr:
+        if options.INCLUDE_SR:
             h_mat += terms.spin_rotation_vec(
                 sigma_basis,
                 omega_basis,
@@ -130,12 +119,16 @@ class NumericComputation:
                 n_op_mats,
                 self.consts.spin_rotation,
             )
-
-        for i in range(dim):
-            for j in range(dim):
-                h_mat[i, j] += switch_ld * terms.lambda_doubling(
-                    i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.lambda_doubling
-                )
+        if options.INCLUDE_LD:
+            h_mat += terms.lambda_doubling_vec(
+                lambda_basis,
+                sigma_basis,
+                omega_basis,
+                float(s_qn),
+                self.j_qn,
+                n_op_mats,
+                self.consts.lambda_doubling,
+            )
 
         return h_mat
 
@@ -206,7 +199,7 @@ def two_pi(num: int) -> None:
     # Terms included via the inherent properties of a 2Π state:
     #   - H_r (all) + H_so (only S > 0 term) + H_sr (only S > 0 term) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: int = 2
+    j_qn: int = 5
     term_symbol: str = "2Pi"
 
     # Constants for the X2Π ground state of OH.
@@ -240,7 +233,7 @@ def five_pi(num: int) -> None:
     # Terms included via the inherent properties of a 5Π state:
     #   - H_r (all) + H_so (all) + H_ss (all) + H_sr (all) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: int = 3
+    j_qn: int = 5
     term_symbol: str = "5Pi"
 
     # Random 5Π state filled with all possible constants.
