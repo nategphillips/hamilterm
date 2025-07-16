@@ -30,10 +30,6 @@ MAX_N_POWER: int = 4
 # evaluation of all anticommutators.
 MAX_N_ACOMM_POWER: int = 2
 
-# Printing options for symbolic computations.
-PRINT_TERM: bool = False
-PRINT_TEX: bool = True
-
 MAX_POWER_INDEX: int = MAX_N_POWER // 2
 MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
 LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
