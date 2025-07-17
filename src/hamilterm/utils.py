@@ -32,6 +32,7 @@ def construct_n_operator_matrices(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
     j_qn: int,
+    max_n_index: int,
 ) -> list[NDArray[np.float64]]: ...
 
 
@@ -40,6 +41,7 @@ def construct_n_operator_matrices(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
     j_qn: sp.Symbol,
+    max_n_index: int,
 ) -> list[sp.MutableDenseMatrix]: ...
 
 
@@ -47,6 +49,7 @@ def construct_n_operator_matrices(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
     j_qn: int | sp.Symbol,
+    max_n_index: int,
 ) -> list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
 
@@ -54,6 +57,7 @@ def construct_n_operator_matrices(
         basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (Fraction): Quantum number S
         j_qn (int): Quantum number J
+        max_n_index (int): Index of the maximum N^{2k} matrix to compute
 
     Returns:
         list[NDArray[np.float64]]: N operator matrices
@@ -77,7 +81,7 @@ def construct_n_operator_matrices(
             n_op_mats[0][i, j] = mel.n_squared(i, j, basis_fns, s_qn, j_qn)
 
     # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
-    for i in range(1, options.MAX_N_POWER // 2):
+    for i in range(1, max_n_index):
         n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
 
     return n_op_mats

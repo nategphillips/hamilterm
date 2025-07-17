@@ -23,7 +23,7 @@ import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
 
-from hamilterm import constants, options, utils
+from hamilterm import constants, utils
 from hamilterm import elements as mel
 from hamilterm.symmat import SymbolicMatrix
 
@@ -97,6 +97,7 @@ def spin_orbit(
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConsts[float],
+    max_acomm_index: int,
 ) -> float: ...
 
 
@@ -108,6 +109,7 @@ def spin_orbit(
     s_qn: Fraction,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     so_consts: constants.SpinOrbitConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> sp.Expr: ...
 
 
@@ -118,6 +120,7 @@ def spin_orbit(
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     so_consts: constants.SpinOrbitConsts[float] | constants.SpinOrbitConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> float | sp.Expr:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
@@ -131,6 +134,7 @@ def spin_orbit(
         s_qn (Fraction): Quantum number S
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         so_consts (SpinOrbitConsts): Spin-orbit constants
+        max_acomm_index (int): Index of the maximum anticommutator term to compute
 
     Returns:
         float: Matrix elements for A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+
@@ -157,7 +161,7 @@ def spin_orbit(
             # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
             #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
             #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
-            for idx, const in enumerate(spin_orbit_cd_consts[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_orbit_cd_consts[:max_acomm_index]):
                 result += (
                     Fraction(1, 2)
                     * const
@@ -185,6 +189,7 @@ def spin_orbit_vec(
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConsts[float],
+    max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
@@ -206,7 +211,7 @@ def spin_orbit_vec(
             so_consts.A_L,
             so_consts.A_M,
         ]
-    )[: options.MAX_ACOMM_INDEX]
+    )[:max_acomm_index]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
     #       themselves, this check might be redundant.
@@ -236,6 +241,7 @@ def spin_spin(
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConsts[float],
+    max_acomm_index: int,
 ) -> float: ...
 
 
@@ -247,6 +253,7 @@ def spin_spin(
     s_qn: Fraction,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     ss_consts: constants.SpinSpinConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> sp.Expr: ...
 
 
@@ -257,6 +264,7 @@ def spin_spin(
     s_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     ss_consts: constants.SpinSpinConsts[float] | constants.SpinSpinConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> float | sp.Expr:
     """Return matrix elements for the spin-spin Hamiltonian.
 
@@ -270,6 +278,7 @@ def spin_spin(
         s_qn (Fraction): Quantum number S
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         ss_consts (SpinSpinConsts): Spin-spin constants
+        max_acomm_index (int): Index of the maximum anticommutator term to compute
 
     Returns:
         float: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
@@ -292,7 +301,7 @@ def spin_spin(
             #   = λ_x/3[⟨i|(3Sz^2 - S^2)N^{2n}|j⟩ + ⟨i|N^{2n}(3Sz^2 - S^2)|j⟩]
             #   = λ_x/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
             #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
-            for idx, const in enumerate(spin_spin_cd_consts[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_spin_cd_consts[:max_acomm_index]):
                 result += (
                     Fraction(1, 3)
                     * const
@@ -326,6 +335,7 @@ def spin_spin_vec(
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConsts[float],
+    max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
 
@@ -340,7 +350,7 @@ def spin_spin_vec(
     result += (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
 
     spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lambda_D, ss_consts.lambda_H])[
-        : options.MAX_ACOMM_INDEX
+        :max_acomm_index
     ]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
@@ -385,6 +395,7 @@ def spin_rotation(
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
+    max_acomm_index: int,
 ) -> float: ...
 
 
@@ -397,6 +408,7 @@ def spin_rotation(
     j_qn: sp.Symbol,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     sr_consts: constants.SpinRotationConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> sp.Expr: ...
 
 
@@ -408,6 +420,7 @@ def spin_rotation(
     j_qn: int | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     sr_consts: constants.SpinRotationConsts[float] | constants.SpinRotationConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> float | sp.Expr:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
@@ -422,6 +435,7 @@ def spin_rotation(
         j_qn (int): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         sr_consts (SpinRotationConsts): Spin-rotation constants
+        max_acomm_index (int): Index of the maximum anticommutator term to compute
 
     Returns:
         float: Matrix elements for γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
@@ -448,7 +462,7 @@ def spin_rotation(
             # ⟨i|γ_x/2[N·S, N^{2n}]+|j⟩ = γ_x/2[⟨i|(N·S)N^{2n}|j⟩ + ⟨i|N^{2n}(N·S)|j⟩]
             #                           = γ_x/2(∑_k⟨i|N·S|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|N·S|j⟩)
             #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
-            for idx, const in enumerate(spin_rotation_cd_consts[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(spin_rotation_cd_consts[:max_acomm_index]):
                 result += (
                     Fraction(1, 2)
                     * const
@@ -492,6 +506,7 @@ def spin_rotation_vec(
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
+    max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
 
@@ -507,7 +522,7 @@ def spin_rotation_vec(
 
     spin_rotation_cd_consts: NDArray[np.float64] = np.array(
         [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L]
-    )[: options.MAX_ACOMM_INDEX]
+    )[:max_acomm_index]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
     #       themselves, this check might be redundant.
@@ -568,6 +583,7 @@ def lambda_doubling(
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
+    max_acomm_index: int,
 ) -> float: ...
 
 
@@ -580,6 +596,7 @@ def lambda_doubling(
     j_qn: sp.Symbol,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     ld_consts: constants.LambdaDoublingConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> sp.Expr: ...
 
 
@@ -591,6 +608,7 @@ def lambda_doubling(
     j_qn: int | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     ld_consts: constants.LambdaDoublingConsts[float] | constants.LambdaDoublingConsts[sp.Symbol],
+    max_acomm_index: int,
 ) -> float | sp.Expr:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
@@ -607,6 +625,7 @@ def lambda_doubling(
         j_qn (int): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         ld_consts (LambdaDoublingConsts): Lambda-doubling constants
+        max_acomm_index (int): Index of the maximum anticommutator term to compute
 
     Returns:
         float: Matrix elements for 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2)
@@ -664,7 +683,7 @@ def lambda_doubling(
             #   = 0.25(o_x + p_x + q_x)[⟨i|(S+^2 + S-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(S+^2 + S-^2)|j⟩]
             #   = 0.25(o_x + p_x + q_x)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|S+^2 + S-^2|j⟩)
             #   = 0.25(o_x + p_x + q_x)[(S+^2 + S-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(S+^2 + S-^2)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_opq[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_opq[:max_acomm_index]):
                 result += (
                     Fraction(1, 4)
                     * const
@@ -678,7 +697,7 @@ def lambda_doubling(
             #   = -0.25(p_x + 2 * q_x)[⟨i|(J+S+ + J-S-)N^{2n}|j⟩ + ⟨i|N^{2n}(J+S+ + J-S-)|j⟩]
             #   = -0.25(p_x + 2 * q_x)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+S+ + J-S-|j⟩)
             #   = -0.25(p_x + 2 * q_x)[(J+S+ + J-S-)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+S+ + J-S-)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_pq[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_pq[:max_acomm_index]):
                 result += (
                     -Fraction(1, 4)
                     * const
@@ -692,7 +711,7 @@ def lambda_doubling(
             #   = 0.25 * q_x[⟨i|(J+^2 + J-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(J+^2 + J-^2)|j⟩]
             #   = 0.25 * q_x(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+^2 + J-^2|j⟩)
             #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
-            for idx, const in enumerate(lambda_doubling_cd_consts_q[: options.MAX_ACOMM_INDEX]):
+            for idx, const in enumerate(lambda_doubling_cd_consts_q[:max_acomm_index]):
                 result += (
                     Fraction(1, 4)
                     * const
@@ -713,6 +732,7 @@ def lambda_doubling_vec(
     j_qn: int,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
+    max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
@@ -742,7 +762,7 @@ def lambda_doubling_vec(
             ld_consts.o_H + ld_consts.p_H + ld_consts.q_H,
             ld_consts.o_L + ld_consts.p_L + ld_consts.q_L,
         ]
-    )[: options.MAX_ACOMM_INDEX]
+    )[:max_acomm_index]
 
     lambda_doubling_cd_consts_pq: NDArray[np.float64] = np.array(
         [
@@ -750,7 +770,7 @@ def lambda_doubling_vec(
             ld_consts.p_H + 2 * ld_consts.q_H,
             ld_consts.p_L + 2 * ld_consts.q_L,
         ]
-    )[: options.MAX_ACOMM_INDEX]
+    )[:max_acomm_index]
 
     lambda_doubling_cd_consts_q: NDArray[np.float64] = np.array(
         [
@@ -758,7 +778,7 @@ def lambda_doubling_vec(
             ld_consts.q_H,
             ld_consts.q_L,
         ]
-    )[: options.MAX_ACOMM_INDEX]
+    )[:max_acomm_index]
 
     # TODO: 25/07/16 - In the future, once MAX_ACOMM_INDEX is set using the supplied constants
     #       themselves, this check might be redundant.

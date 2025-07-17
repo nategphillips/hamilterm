@@ -33,17 +33,30 @@ if TYPE_CHECKING:
 class NumericComputation:
     """Numerically compute the Hamiltonian for a given J."""
 
-    def __init__(self, term_symbol: str, consts: constants.NumericConstants, j_qn: int) -> None:
+    def __init__(
+        self,
+        term_symbol: str,
+        consts: constants.NumericConstants,
+        j_qn: int,
+        max_n_power: int = 4,
+        max_acomm_power: int = 2,
+    ) -> None:
         """Initialize class variables.
 
         Args:
             term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
             consts (constants.NumericConstants): Molecular constants
             j_qn (int): Quantum number J
+            max_n_power (int, optional): Maximum power of N matrices to compute, can be 2, 4, 6, 8,
+                10, or 12. Defaults to 4.
+            max_acomm_power (int, optional): Maximum power of N used when evaluating
+                anticommutators, can be 0, 2, 4, 6, or 8. Defaults to 2.
         """
         self.term_symbol: str = term_symbol
         self.consts: constants.NumericConstants = consts
         self.j_qn: int = j_qn
+        self.max_n_index: int = max_n_power // 2
+        self.max_acomm_index: int = max_acomm_power // 2
 
     @cached_property
     def hamiltonian(self) -> NDArray[np.float64]:
@@ -56,7 +69,9 @@ class NumericComputation:
         basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(basis_fns, s_qn, self.j_qn)
+        n_op_mats = utils.construct_n_operator_matrices(
+            basis_fns, s_qn, self.j_qn, self.max_n_index
+        )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
@@ -76,16 +91,46 @@ class NumericComputation:
                 h_mat[i, j] = (
                     switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
                     + switch_so
-                    * terms.spin_orbit(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_orbit)
+                    * terms.spin_orbit(
+                        i,
+                        j,
+                        basis_fns,
+                        s_qn,
+                        n_op_mats,
+                        self.consts.spin_orbit,
+                        self.max_acomm_index,
+                    )
                     + switch_ss
-                    * terms.spin_spin(i, j, basis_fns, s_qn, n_op_mats, self.consts.spin_spin)
+                    * terms.spin_spin(
+                        i,
+                        j,
+                        basis_fns,
+                        s_qn,
+                        n_op_mats,
+                        self.consts.spin_spin,
+                        self.max_acomm_index,
+                    )
                     + switch_sr
                     * terms.spin_rotation(
-                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.spin_rotation
+                        i,
+                        j,
+                        basis_fns,
+                        s_qn,
+                        self.j_qn,
+                        n_op_mats,
+                        self.consts.spin_rotation,
+                        self.max_acomm_index,
                     )
                     + switch_ld
                     * terms.lambda_doubling(
-                        i, j, basis_fns, s_qn, self.j_qn, n_op_mats, self.consts.lambda_doubling
+                        i,
+                        j,
+                        basis_fns,
+                        s_qn,
+                        self.j_qn,
+                        n_op_mats,
+                        self.consts.lambda_doubling,
+                        self.max_acomm_index,
                     )
                 )
 
@@ -98,7 +143,9 @@ class NumericComputation:
         lambda_basis, sigma_basis, omega_basis = utils.basis_vectors(basis_fns)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(basis_fns, s_qn, self.j_qn)
+        n_op_mats = utils.construct_n_operator_matrices(
+            basis_fns, s_qn, self.j_qn, self.max_n_index
+        )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
@@ -106,10 +153,17 @@ class NumericComputation:
             h_mat += terms.rotational_vec(n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
             h_mat += terms.spin_orbit_vec(
-                lambda_basis, sigma_basis, float(s_qn), n_op_mats, self.consts.spin_orbit
+                lambda_basis,
+                sigma_basis,
+                float(s_qn),
+                n_op_mats,
+                self.consts.spin_orbit,
+                self.max_acomm_index,
             )
         if options.INCLUDE_SS:
-            h_mat += terms.spin_spin_vec(sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin)
+            h_mat += terms.spin_spin_vec(
+                sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin, self.max_acomm_index
+            )
         if options.INCLUDE_SR:
             h_mat += terms.spin_rotation_vec(
                 sigma_basis,
@@ -118,6 +172,7 @@ class NumericComputation:
                 self.j_qn,
                 n_op_mats,
                 self.consts.spin_rotation,
+                self.max_acomm_index,
             )
         if options.INCLUDE_LD:
             h_mat += terms.lambda_doubling_vec(
@@ -128,6 +183,7 @@ class NumericComputation:
                 self.j_qn,
                 n_op_mats,
                 self.consts.lambda_doubling,
+                self.max_acomm_index,
             )
 
         return h_mat
@@ -175,14 +231,16 @@ def three_sigma(num: int) -> None:
         spin_rotation=constants.SpinRotationConsts.numeric(gamma=-0.028),
     )
 
-    comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
+    comp: NumericComputation = NumericComputation(
+        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
+    )
 
     def bench_orig():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
     def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian_vec
 
     print(f"{num}\t3Σ Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
@@ -209,14 +267,16 @@ def two_pi(num: int) -> None:
         lambda_doubling=constants.LambdaDoublingConsts.numeric(p=0.235, q=-0.0391),
     )
 
-    comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
+    comp: NumericComputation = NumericComputation(
+        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
+    )
 
     def bench_orig():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
     def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian_vec
 
     print(f"{num}\t2Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
@@ -262,14 +322,16 @@ def five_pi(num: int) -> None:
         ),
     )
 
-    comp: NumericComputation = NumericComputation(term_symbol, consts, j_qn)
+    comp: NumericComputation = NumericComputation(
+        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
+    )
 
     def bench_orig():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
     def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn)
+        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian_vec
 
     print(f"{num}\t5Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
