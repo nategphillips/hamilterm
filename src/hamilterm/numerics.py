@@ -59,7 +59,7 @@ class NumericComputation:
         self.max_acomm_index: int = max_acomm_power // 2
 
     @cached_property
-    def hamiltonian(self) -> NDArray[np.float64]:
+    def hamiltonian_orig(self) -> NDArray[np.float64]:
         """Build a Hamiltonian matrix for numeric computation.
 
         Returns:
@@ -196,7 +196,7 @@ class NumericComputation:
             EighResult: Eigenvalues and eigenvectors
         """
         # The Hamiltonian matrix is always Hermitian, so eigh can be used.
-        return np.linalg.eigh(self.hamiltonian)
+        return np.linalg.eigh(self.hamiltonian_vec)
 
     @property
     def eigenvalues(self) -> NDArray[np.float64]:
@@ -237,7 +237,7 @@ def three_sigma(num: int) -> None:
 
     def bench_orig():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian
+        comp.hamiltonian_orig
 
     def bench_vec():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
@@ -246,11 +246,12 @@ def three_sigma(num: int) -> None:
     print(f"{num}\t3Σ Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
     print(f"{num}\t3Σ Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
 
+    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
     evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
 
-    assert np.allclose(comp.hamiltonian, comp.hamiltonian_vec)
-    assert np.allclose(comp.eigenvalues, evals_vec)
-    assert np.allclose(comp.eigenvectors, evects_vec)
+    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
+    assert np.allclose(evals_orig, evals_vec)
+    assert np.allclose(evects_orig, evects_vec)
 
 
 def two_pi(num: int) -> None:
@@ -273,7 +274,7 @@ def two_pi(num: int) -> None:
 
     def bench_orig():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian
+        comp.hamiltonian_orig
 
     def bench_vec():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
@@ -282,11 +283,12 @@ def two_pi(num: int) -> None:
     print(f"{num}\t2Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
     print(f"{num}\t2Π Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
 
+    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
     evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
 
-    assert np.allclose(comp.hamiltonian, comp.hamiltonian_vec)
-    assert np.allclose(comp.eigenvalues, evals_vec)
-    assert np.allclose(comp.eigenvectors, evects_vec)
+    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
+    assert np.allclose(evals_orig, evals_vec)
+    assert np.allclose(evects_orig, evects_vec)
 
 
 def five_pi(num: int) -> None:
@@ -328,7 +330,7 @@ def five_pi(num: int) -> None:
 
     def bench_orig():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian
+        comp.hamiltonian_orig
 
     def bench_vec():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
@@ -337,11 +339,12 @@ def five_pi(num: int) -> None:
     print(f"{num}\t5Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
     print(f"{num}\t5Π Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
 
+    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
     evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
 
-    assert np.allclose(comp.hamiltonian, comp.hamiltonian_vec)
-    assert np.allclose(comp.eigenvalues, evals_vec)
-    assert np.allclose(comp.eigenvectors, evects_vec)
+    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
+    assert np.allclose(evals_orig, evals_vec)
+    assert np.allclose(evects_orig, evects_vec)
 
 
 def main() -> None:
