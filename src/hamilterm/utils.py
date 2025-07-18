@@ -31,7 +31,7 @@ from hamilterm import options
 def construct_n_operator_matrices(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int,
+    j_qn: Fraction,
     max_n_index: int,
 ) -> list[NDArray[np.float64]]: ...
 
@@ -48,7 +48,7 @@ def construct_n_operator_matrices(
 def construct_n_operator_matrices(
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int | sp.Symbol,
+    j_qn: Fraction | sp.Symbol,
     max_n_index: int,
 ) -> list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
@@ -56,7 +56,7 @@ def construct_n_operator_matrices(
     Args:
         basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (Fraction): Quantum number S
-        j_qn (int): Quantum number J
+        j_qn (Fraction): Quantum number J
         max_n_index (int): Index of the maximum N^{2k} matrix to compute
 
     Returns:
@@ -70,7 +70,7 @@ def construct_n_operator_matrices(
     # operator matrices up to N^12 - if MAX_N_POWER is less than 12, the unused matrices will have
     # all their elements equal to zero.
     n_op_mats: list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]
-    if isinstance(j_qn, int):
+    if isinstance(j_qn, Fraction):
         n_op_mats = [np.zeros((dim, dim)) for _ in range(6)]
     else:
         n_op_mats = [sp.zeros(dim) for _ in range(6)]

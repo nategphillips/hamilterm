@@ -392,7 +392,7 @@ def spin_rotation(
     j: int,
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int,
+    j_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
     max_acomm_index: int,
@@ -417,7 +417,7 @@ def spin_rotation(
     j: int,
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int | sp.Symbol,
+    j_qn: Fraction | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     sr_consts: constants.SpinRotationConsts[float] | constants.SpinRotationConsts[sp.Symbol],
     max_acomm_index: int,
@@ -432,7 +432,7 @@ def spin_rotation(
         j (int): Index j (col) of the Hamiltonian matrix
         basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (Fraction): Quantum number S
-        j_qn (int): Quantum number J
+        j_qn (Fraction): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         sr_consts (SpinRotationConsts): Spin-rotation constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -503,7 +503,7 @@ def spin_rotation_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: int,
+    j_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
     max_acomm_index: int,
@@ -580,7 +580,7 @@ def lambda_doubling(
     j: int,
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int,
+    j_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
     max_acomm_index: int,
@@ -605,7 +605,7 @@ def lambda_doubling(
     j: int,
     basis_fns: list[tuple[int, Fraction, Fraction]],
     s_qn: Fraction,
-    j_qn: int | sp.Symbol,
+    j_qn: Fraction | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     ld_consts: constants.LambdaDoublingConsts[float] | constants.LambdaDoublingConsts[sp.Symbol],
     max_acomm_index: int,
@@ -622,7 +622,7 @@ def lambda_doubling(
         j (int): Index j (col) of the Hamiltonian matrix
         basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (Fraction): Quantum number S
-        j_qn (int): Quantum number J
+        j_qn (Fraction): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         ld_consts (LambdaDoublingConsts): Lambda-doubling constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -729,7 +729,7 @@ def lambda_doubling_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: int,
+    j_qn: Fraction,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
     max_acomm_index: int,

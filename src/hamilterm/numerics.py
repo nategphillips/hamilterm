@@ -17,17 +17,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import timeit
+from fractions import Fraction
 from functools import cached_property
-from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.linalg._linalg import EighResult
 from numpy.typing import NDArray
 
 from hamilterm import constants, options, terms, utils
-
-if TYPE_CHECKING:
-    from fractions import Fraction
 
 
 class NumericComputation:
@@ -37,7 +34,7 @@ class NumericComputation:
         self,
         term_symbol: str,
         consts: constants.NumericConstants,
-        j_qn: int,
+        j_qn: Fraction,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
     ) -> None:
@@ -46,7 +43,7 @@ class NumericComputation:
         Args:
             term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
             consts (constants.NumericConstants): Molecular constants
-            j_qn (int): Quantum number J
+            j_qn (Fraction): Quantum number J
             max_n_power (int, optional): Maximum power of N matrices to compute, can be 2, 4, 6, 8,
                 10, or 12. Defaults to 4.
             max_acomm_power (int, optional): Maximum power of N used when evaluating
@@ -54,7 +51,7 @@ class NumericComputation:
         """
         self.term_symbol: str = term_symbol
         self.consts: constants.NumericConstants = consts
-        self.j_qn: int = j_qn
+        self.j_qn: Fraction = j_qn
         self.max_n_index: int = max_n_power // 2
         self.max_acomm_index: int = max_acomm_power // 2
 
@@ -221,7 +218,7 @@ def three_sigma(num: int) -> None:
     # Terms included via the inherent properties of a 3Σ state:
     #   - H_r (all) + H_ss (only S > 1/2 term) + H_sr (only S > 0 term)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: int = 1
+    j_qn: Fraction = Fraction(1)
     term_symbol: str = "3Sigma"
 
     # Constants for the v' = 0 B3Σu- state of O2.
@@ -258,7 +255,7 @@ def two_pi(num: int) -> None:
     # Terms included via the inherent properties of a 2Π state:
     #   - H_r (all) + H_so (only S > 0 term) + H_sr (only S > 0 term) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: int = 5
+    j_qn: Fraction = Fraction(5)
     term_symbol: str = "2Pi"
 
     # Constants for the X2Π ground state of OH.
@@ -295,7 +292,7 @@ def five_pi(num: int) -> None:
     # Terms included via the inherent properties of a 5Π state:
     #   - H_r (all) + H_so (all) + H_ss (all) + H_sr (all) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: int = 5
+    j_qn: Fraction = Fraction(5)
     term_symbol: str = "5Pi"
 
     # Random 5Π state filled with all possible constants.
