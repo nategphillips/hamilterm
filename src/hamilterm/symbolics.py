@@ -198,7 +198,7 @@ class SymbolicComputation:
         """Output general info, basis states, the Hamiltonian, and eigenvalues to a tex file."""
         s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
 
-        tex_term: str = rf"\item $^{self.term_symbol[0]}\{self.term_symbol[1:]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_term: str = rf"\item $^{self.term_symbol[0]}\{options.LAMBDA_LONG_MAP[self.term_symbol[1:]]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
         tex_ham: str = sp.latex(self.hamiltonian)
 
         basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
@@ -493,7 +493,7 @@ def fsn(num: int | Fraction | sp.Expr, tex: bool = False) -> str:
 def main() -> None:
     """Entry point."""
     j_qn: sp.Symbol = sp.symbols("J")
-    term_symbol: str = "2Sigma"
+    term_symbol: str = "2S"
 
     consts: constants.SymbolicConstants = constants.SymbolicConstants()
 

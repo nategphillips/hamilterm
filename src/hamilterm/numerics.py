@@ -219,7 +219,7 @@ def three_sigma(num: int) -> None:
     #   - H_r (all) + H_ss (only S > 1/2 term) + H_sr (only S > 0 term)
     # These terms are further narrowed depending on the included constants below.
     j_qn: Fraction = Fraction(1)
-    term_symbol: str = "3Sigma"
+    term_symbol: str = "3S"
 
     # Constants for the v' = 0 B3Σu- state of O2.
     consts: constants.NumericConstants = constants.NumericConstants(
@@ -256,7 +256,7 @@ def two_pi(num: int) -> None:
     #   - H_r (all) + H_so (only S > 0 term) + H_sr (only S > 0 term) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
     j_qn: Fraction = Fraction(5)
-    term_symbol: str = "2Pi"
+    term_symbol: str = "2P"
 
     # Constants for the X2Π ground state of OH.
     consts: constants.NumericConstants = constants.NumericConstants(
@@ -293,7 +293,7 @@ def five_pi(num: int) -> None:
     #   - H_r (all) + H_so (all) + H_ss (all) + H_sr (all) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
     j_qn: Fraction = Fraction(5)
-    term_symbol: str = "5Pi"
+    term_symbol: str = "5P"
 
     # Random 5Π state filled with all possible constants.
     consts: constants.NumericConstants = constants.NumericConstants(

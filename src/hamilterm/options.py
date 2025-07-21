@@ -23,5 +23,6 @@ INCLUDE_SS: bool = True
 INCLUDE_SR: bool = True
 INCLUDE_LD: bool = True
 
-LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
-LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
+LAMBDA_INT_MAP: dict[str, int] = {"S": 0, "P": 1}
+LAMBDA_STR_MAP: dict[str, str] = {"S": "Σ", "P": "Π"}
+LAMBDA_LONG_MAP: dict[str, str] = {"S": "Sigma", "P": "Pi"}

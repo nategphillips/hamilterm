@@ -91,7 +91,7 @@ def parse_term_symbol(term_symbol: str) -> tuple[Fraction, int]:
     """Parse the molecular term symbol into the quantum numbers S and Λ.
 
     Args:
-        term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
+        term_symbol (str): Molecular term symbol, e.g., "2P" or "3S"
 
     Returns:
         tuple[Fraction, int]: Quantum numbers S and Λ
