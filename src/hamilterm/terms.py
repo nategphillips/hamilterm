@@ -293,7 +293,7 @@ def spin_spin(
         # 2λ/3(3Sz^2 - S^2)
         result += Fraction(2, 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
 
-        spin_spin_cd_consts: list[float | sp.Symbol] = [ss_consts.lambda_D, ss_consts.lambda_H]
+        spin_spin_cd_consts: list[float | sp.Symbol] = [ss_consts.lamda_D, ss_consts.lamda_H]
 
         # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for k in range(len(basis_fns)):
@@ -349,7 +349,7 @@ def spin_spin_vec(
     three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_vec(sigma_basis, s_qn)
     result += (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
 
-    spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lambda_D, ss_consts.lambda_H])[
+    spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lamda_D, ss_consts.lamda_H])[
         :max_acomm_index
     ]
 

@@ -81,14 +81,14 @@ class SpinSpinConsts[T: (float, sp.Symbol)]:
     """Constants for the spin-spin operator."""
 
     lamda: T
-    lambda_D: T
-    lambda_H: T
+    lamda_D: T
+    lamda_H: T
     theta: T
 
     @classmethod
     def numeric(cls: type["SpinSpinConsts[float]"], **kwargs: float) -> "SpinSpinConsts[float]":
         """Create numeric spin-spin constants."""
-        defaults: dict[str, float] = {"lamda": 0.0, "lambda_D": 0.0, "lambda_H": 0.0, "theta": 0.0}
+        defaults: dict[str, float] = {"lamda": 0.0, "lamda_D": 0.0, "lamda_H": 0.0, "theta": 0.0}
         defaults.update(kwargs)
         return cls(**defaults)
 

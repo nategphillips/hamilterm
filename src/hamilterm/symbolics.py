@@ -380,7 +380,7 @@ def included_hamiltonian_terms(
         # 2λ/3(3Sz^2 - S^2)
         h_ss += Fraction(2, 3) * ss_consts.lamda * (3 * S_z**2 - S**2)
 
-        spin_spin_cd_consts: list[sp.Symbol] = [ss_consts.lambda_D, ss_consts.lambda_H]
+        spin_spin_cd_consts: list[sp.Symbol] = [ss_consts.lamda_D, ss_consts.lamda_H]
 
         # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for idx, symbol in enumerate(spin_spin_cd_consts[:max_acomm_index]):

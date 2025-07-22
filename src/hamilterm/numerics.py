@@ -301,7 +301,7 @@ def five_pi(num: int) -> None:
             B=18.55, D=4.50e-06, H=4.50e-06, L=4.50e-06, M=4.50e-06, P=4.50e-06
         ),
         spin_orbit=constants.SpinOrbitConsts.numeric(A=-139.21, A_D=1, A_H=1, A_L=1, A_M=1, eta=1),
-        spin_spin=constants.SpinSpinConsts.numeric(lamda=1.69, lambda_D=1, lambda_H=1, theta=1),
+        spin_spin=constants.SpinSpinConsts.numeric(lamda=1.69, lamda_D=1, lamda_H=1, theta=1),
         spin_rotation=constants.SpinRotationConsts.numeric(
             gamma=-0.028, gamma_D=-0.028, gamma_H=-0.028, gamma_L=-0.028, gamma_S=-0.028
         ),
