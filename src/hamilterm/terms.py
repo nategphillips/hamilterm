@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fractions import Fraction
 from typing import overload
 
 import numpy as np
@@ -93,8 +92,8 @@ def rotational_vec(
 def spin_orbit(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConsts[float],
     max_acomm_index: int,
@@ -105,8 +104,8 @@ def spin_orbit(
 def spin_orbit(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     so_consts: constants.SpinOrbitConsts[sp.Symbol],
     max_acomm_index: int,
@@ -116,8 +115,8 @@ def spin_orbit(
 def spin_orbit(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     so_consts: constants.SpinOrbitConsts[float] | constants.SpinOrbitConsts[sp.Symbol],
     max_acomm_index: int,
@@ -130,8 +129,8 @@ def spin_orbit(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         so_consts (SpinOrbitConsts): Spin-orbit constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -163,7 +162,7 @@ def spin_orbit(
             #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
             for idx, const in enumerate(spin_orbit_cd_consts[:max_acomm_index]):
                 result += (
-                    Fraction(1, 2)
+                    0.5
                     * const
                     * (
                         n_op_mats[idx][i, k] * mel.lz_sz(k, j, basis_fns)
@@ -177,7 +176,7 @@ def spin_orbit(
             result += (
                 so_consts.eta
                 * mel.lz_sz(i, j, basis_fns)
-                * (sigma_qn_j**2 - Fraction(1, 5) * (3 * mel.s_squared(s_qn) - 1))
+                * (sigma_qn_j**2 - 0.2 * (3 * mel.s_squared(s_qn) - 1))
             )
 
     return result
@@ -237,8 +236,8 @@ def spin_orbit_vec(
 def spin_spin(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConsts[float],
     max_acomm_index: int,
@@ -249,8 +248,8 @@ def spin_spin(
 def spin_spin(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     ss_consts: constants.SpinSpinConsts[sp.Symbol],
     max_acomm_index: int,
@@ -260,8 +259,8 @@ def spin_spin(
 def spin_spin(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     ss_consts: constants.SpinSpinConsts[float] | constants.SpinSpinConsts[sp.Symbol],
     max_acomm_index: int,
@@ -274,8 +273,8 @@ def spin_spin(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         ss_consts (SpinSpinConsts): Spin-spin constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -284,14 +283,14 @@ def spin_spin(
         float: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
             + λ_H/2[2/3(3Sz^2 - S^2), N^4]+ + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     """
-    sigma_qn_j: Fraction = basis_fns[j][1]
+    sigma_qn_j: float | sp.Rational = basis_fns[j][1]
 
     result: float | sp.Expr = 0.0
 
     # Spin-spin coupling is only defined for states with S > 1/2.
-    if s_qn > Fraction(1, 2):
+    if s_qn > 0.5:
         # 2λ/3(3Sz^2 - S^2)
-        result += Fraction(2, 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
+        result += (2 / 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
 
         spin_spin_cd_consts: list[float | sp.Symbol] = [ss_consts.lamda_D, ss_consts.lamda_H]
 
@@ -303,7 +302,7 @@ def spin_spin(
             #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
             for idx, const in enumerate(spin_spin_cd_consts[:max_acomm_index]):
                 result += (
-                    Fraction(1, 3)
+                    (1 / 3)
                     * const
                     * (
                         mel.three_sz2_minus_s2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
@@ -312,11 +311,11 @@ def spin_spin(
                 )
 
         # θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4) term only valid for states with S > 3/2.
-        if i == j and s_qn > Fraction(3, 2):
+        if i == j and s_qn > 1.5:
             # ⟨S, Σ|θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)|S, Σ⟩
             #   = θ/12(35Σ^4 - 30S(S + 1)Σ^2 + 25Σ^2 - 6S(S + 1) + 3[S(S + 1)]^2)
             result += (
-                Fraction(1, 12)
+                (1 / 12)
                 * ss_consts.theta
                 * (
                     35 * sigma_qn_j**4
@@ -390,9 +389,9 @@ def spin_spin_vec(
 def spin_rotation(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
+    j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
     max_acomm_index: int,
@@ -403,8 +402,8 @@ def spin_rotation(
 def spin_rotation(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
     j_qn: sp.Symbol,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     sr_consts: constants.SpinRotationConsts[sp.Symbol],
@@ -415,9 +414,9 @@ def spin_rotation(
 def spin_rotation(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
+    j_qn: float | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     sr_consts: constants.SpinRotationConsts[float] | constants.SpinRotationConsts[sp.Symbol],
     max_acomm_index: int,
@@ -430,9 +429,9 @@ def spin_rotation(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         sr_consts (SpinRotationConsts): Spin-rotation constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -464,7 +463,7 @@ def spin_rotation(
             #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
             for idx, const in enumerate(spin_rotation_cd_consts[:max_acomm_index]):
                 result += (
-                    Fraction(1, 2)
+                    0.5
                     * const
                     * (
                         mel.n_dot_s(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
@@ -478,7 +477,7 @@ def spin_rotation(
             #   = -γ_S/2[S(S + 1) - 5Σ(Σ + 1) + 2]([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
             if sigma_qn_i == sigma_qn_j + 1 and omega_qn_i == omega_qn_j + 1:
                 result += (
-                    -Fraction(1, 2)
+                    -0.5
                     * sr_consts.gamma_S
                     * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
                     * mel.j_minus(j_qn, omega_qn_j)
@@ -489,7 +488,7 @@ def spin_rotation(
             #   = -γ_s/2[S(S + 1) - 5Σ(Σ - 1) + 2]([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
             if sigma_qn_i == sigma_qn_j - 1 and omega_qn_i == omega_qn_j - 1:
                 result += (
-                    -Fraction(1, 2)
+                    -0.5
                     * sr_consts.gamma_S
                     * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
                     * mel.j_plus(j_qn, omega_qn_j)
@@ -503,7 +502,7 @@ def spin_rotation_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: Fraction,
+    j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConsts[float],
     max_acomm_index: int,
@@ -578,9 +577,9 @@ def spin_rotation_vec(
 def lambda_doubling(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
+    j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
     max_acomm_index: int,
@@ -591,8 +590,8 @@ def lambda_doubling(
 def lambda_doubling(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
     j_qn: sp.Symbol,
     n_op_mats: list[SymbolicMatrix[sp.Expr]],
     ld_consts: constants.LambdaDoublingConsts[sp.Symbol],
@@ -603,9 +602,9 @@ def lambda_doubling(
 def lambda_doubling(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
+    j_qn: float | sp.Symbol,
     n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
     ld_consts: constants.LambdaDoublingConsts[float] | constants.LambdaDoublingConsts[sp.Symbol],
     max_acomm_index: int,
@@ -620,9 +619,9 @@ def lambda_doubling(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
         n_op_mats (list[NDArray[np.float64]]): N operator matrices
         ld_consts (LambdaDoublingConsts): Lambda-doubling constants
         max_acomm_index (int): Index of the maximum anticommutator term to compute
@@ -642,20 +641,18 @@ def lambda_doubling(
     if abs(lambda_qn_i - lambda_qn_j) == 2:
         # 0.5(o + p + q)(S+^2 + S-^2)
         result += (
-            Fraction(1, 2)
+            0.5
             * (ld_consts.o + ld_consts.p + ld_consts.q)
             * mel.sp2_plus_sm2(i, j, basis_fns, s_qn)
         )
 
         # -0.5(p + 2q)(J+S+ + J-S-)
         result += (
-            -Fraction(1, 2)
-            * (ld_consts.p + 2 * ld_consts.q)
-            * mel.jpsp_plus_jmsm(i, j, basis_fns, s_qn, j_qn)
+            -0.5 * (ld_consts.p + 2 * ld_consts.q) * mel.jpsp_plus_jmsm(i, j, basis_fns, s_qn, j_qn)
         )
 
         # q/2(J+^2 + J-^2)
-        result += Fraction(1, 2) * ld_consts.q * mel.jp2_plus_jm2(i, j, basis_fns, j_qn)
+        result += 0.5 * ld_consts.q * mel.jp2_plus_jm2(i, j, basis_fns, j_qn)
 
         lambda_doubling_cd_consts_opq: list[float | sp.Expr] = [
             ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
@@ -685,7 +682,7 @@ def lambda_doubling(
             #   = 0.25(o_x + p_x + q_x)[(S+^2 + S-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(S+^2 + S-^2)_{kj}]
             for idx, const in enumerate(lambda_doubling_cd_consts_opq[:max_acomm_index]):
                 result += (
-                    Fraction(1, 4)
+                    0.25
                     * const
                     * (
                         mel.sp2_plus_sm2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
@@ -699,7 +696,7 @@ def lambda_doubling(
             #   = -0.25(p_x + 2 * q_x)[(J+S+ + J-S-)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+S+ + J-S-)_{kj}]
             for idx, const in enumerate(lambda_doubling_cd_consts_pq[:max_acomm_index]):
                 result += (
-                    -Fraction(1, 4)
+                    -0.25
                     * const
                     * (
                         mel.jpsp_plus_jmsm(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
@@ -713,7 +710,7 @@ def lambda_doubling(
             #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
             for idx, const in enumerate(lambda_doubling_cd_consts_q[:max_acomm_index]):
                 result += (
-                    Fraction(1, 4)
+                    0.25
                     * const
                     * (
                         mel.jp2_plus_jm2(i, k, basis_fns, j_qn) * n_op_mats[idx][k, j]
@@ -729,7 +726,7 @@ def lambda_doubling_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: Fraction,
+    j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConsts[float],
     max_acomm_index: int,

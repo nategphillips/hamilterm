@@ -17,7 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from fractions import Fraction
 from typing import overload
 
 import numpy as np
@@ -28,18 +27,18 @@ from hamilterm import utils
 
 
 @overload
-def j_squared(j_qn: Fraction) -> Fraction: ...
+def j_squared(j_qn: float) -> float: ...
 
 
 @overload
 def j_squared(j_qn: sp.Symbol) -> sp.Expr: ...
 
 
-def j_squared(j_qn: Fraction | sp.Symbol) -> Fraction | sp.Expr:
+def j_squared(j_qn: float | sp.Symbol) -> float | sp.Expr:
     """Return the diagonal matrix element ⟨J|J^2|J⟩ = J(J + 1).
 
     Args:
-        j_qn (Fraction): Quantum number J
+        j_qn (float): Quantum number J
 
     Returns:
         int: Matrix element J(J + 1)
@@ -48,75 +47,83 @@ def j_squared(j_qn: Fraction | sp.Symbol) -> Fraction | sp.Expr:
 
 
 @overload
-def j_plus(j_qn: Fraction, omega_qn_j: Fraction) -> float: ...
+def j_plus(j_qn: float, omega_qn_j: float) -> float: ...
 
 
 @overload
-def j_plus(j_qn: sp.Symbol, omega_qn_j: Fraction) -> sp.Expr: ...
+def j_plus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
 
 
-def j_plus(j_qn: Fraction | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
+def j_plus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
     """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
 
     Args:
-        j_qn (Fraction): Quantum number J
-        omega_qn_j (Fraction): Quantum number Ω
+        j_qn (float): Quantum number J
+        omega_qn_j (float): Quantum number Ω
 
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
     """
-    result: Fraction | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
+    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
 
-    if isinstance(j_qn, Fraction):
+    if isinstance(j_qn, float):
         return math.sqrt(result)
 
     return sp.sqrt(result)
 
 
-def j_plus_vec(j_qn: Fraction, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+def j_plus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     j_qn_float: np.float64 = np.float64(j_qn)
     return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
 @overload
-def j_minus(j_qn: Fraction, omega_qn_j: Fraction) -> float: ...
+def j_minus(j_qn: float, omega_qn_j: float) -> float: ...
 
 
 @overload
-def j_minus(j_qn: sp.Symbol, omega_qn_j: Fraction) -> sp.Expr: ...
+def j_minus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
 
 
-def j_minus(j_qn: Fraction | sp.Symbol, omega_qn_j: Fraction) -> float | sp.Expr:
+def j_minus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
     """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
 
     Args:
-        j_qn (Fraction): Quantum number J
-        omega_qn_j (Fraction): Quantum number Ω
+        j_qn (float): Quantum number J
+        omega_qn_j (float): Quantum number Ω
 
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
     """
-    result: Fraction | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
+    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
 
-    if isinstance(j_qn, Fraction):
+    if isinstance(j_qn, float):
         return math.sqrt(result)
 
     return sp.sqrt(result)
 
 
-def j_minus_vec(j_qn: Fraction, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+def j_minus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     j_qn_float: np.float64 = np.float64(j_qn)
     return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
-def s_squared(s_qn: Fraction) -> Fraction:
+@overload
+def s_squared(s_qn: float) -> float: ...
+
+
+@overload
+def s_squared(s_qn: sp.Rational) -> sp.Expr: ...
+
+
+def s_squared(s_qn: float | sp.Rational) -> float | sp.Expr:
     """Return the diagonal matrix element ⟨S|S^2|S⟩ = S(S + 1).
 
     Args:
-        s_qn (Fraction): Quantum number S
+        s_qn (float): Quantum number S
 
     Returns:
-        Fraction: Matrix element S(S + 1)
+        float: Matrix element S(S + 1)
     """
     return s_qn * (s_qn + 1)
 
@@ -125,12 +132,12 @@ def s_squared_vec(s_qn: float) -> float:
     return s_qn * (s_qn + 1)
 
 
-def s_plus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
+def s_plus(s_qn: float, sigma_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
 
     Args:
-        s_qn (Fraction): Quantum number S
-        sigma_qn_j (Fraction): Quantum number Σ
+        s_qn (float): Quantum number S
+        sigma_qn_j (float): Quantum number Σ
 
     Returns:
         float: Matrix element [S(S + 1) - Σ(Σ + 1)]^(1/2)
@@ -142,12 +149,12 @@ def s_plus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float
     return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
-def s_minus(s_qn: Fraction, sigma_qn_j: Fraction) -> float:
+def s_minus(s_qn: float, sigma_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
 
     Args:
-        s_qn (Fraction): Quantum number S
-        sigma_qn_j (Fraction): Quantum number Σ
+        s_qn (float): Quantum number S
+        sigma_qn_j (float): Quantum number Σ
 
     Returns:
         float: Matrix element [S(S + 1) - Σ(Σ - 1)]^(1/2)
@@ -161,23 +168,27 @@ def s_minus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.floa
 
 @overload
 def n_squared(
-    i: int, j: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: Fraction
-) -> float | Fraction: ...
+    i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
+) -> float: ...
 
 
 @overload
 def n_squared(
-    i: int, j: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: sp.Symbol
+    i: int,
+    j: int,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
+    j_qn: sp.Symbol,
 ) -> sp.Expr: ...
 
 
 def n_squared(
     i: int,
     j: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
-) -> float | Fraction | sp.Expr:
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
+    j_qn: float | sp.Symbol,
+) -> float | sp.Expr:
     """Return matrix elements for the N^2 operator.
 
     N^2 = J^2 + S^2 - 2JzSz - (J+S- + J-S+).
@@ -185,12 +196,12 @@ def n_squared(
     Args:
         i (int): Index i (row) of the Hamiltonian matrix
         j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
 
     Returns:
-        float | Fraction: Matrix elements for J^2 + S^2 - 2JzSz - (J+S- + J-S+)
+        float | float: Matrix elements for J^2 + S^2 - 2JzSz - (J+S- + J-S+)
     """
     _, sigma_qn_i, omega_qn_i = basis_fns[i]
     _, sigma_qn_j, omega_qn_j = basis_fns[j]
@@ -210,16 +221,16 @@ def n_squared(
     return 0.0
 
 
-def lz_sz(m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]]) -> int | Fraction:
+def lz_sz(m: int, n: int, basis_fns: list[tuple[int, float, float]]) -> int | float:
     """Return matrix elements for the LzSz operator.
 
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
 
     Returns:
-        int | Fraction: Matrix elements for LzSz
+        int | float: Matrix elements for LzSz
     """
     lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
 
@@ -241,18 +252,18 @@ def lz_sz_vec(
 
 
 def three_sz2_minus_s2(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction
-) -> int | Fraction:
+    m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float
+) -> int | float:
     """Return matrix elements for the 3Sz^2 - S^2 operator.
 
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
 
     Returns:
-        int | Fraction: Matrix elements for 3Sz^2 - S^2
+        int | float: Matrix elements for 3Sz^2 - S^2
     """
     sigma_qn_n = basis_fns[n][1]
 
@@ -273,23 +284,27 @@ def three_sz2_minus_s2_vec(sigma_basis: NDArray[np.float64], s_qn: float) -> NDA
 
 @overload
 def n_dot_s(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: Fraction
-) -> float | Fraction: ...
+    m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
+) -> float: ...
 
 
 @overload
 def n_dot_s(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: sp.Symbol
+    m: int,
+    n: int,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
+    j_qn: sp.Symbol,
 ) -> sp.Expr: ...
 
 
 def n_dot_s(
     m: int,
     n: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
-) -> float | Fraction | sp.Expr:
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
+    j_qn: float | sp.Symbol,
+) -> float | sp.Expr:
     """Return matrix elements for the N·S operator.
 
     N·S = JzSz + 0.5(J+S- + J-S+) - S^2
@@ -297,9 +312,9 @@ def n_dot_s(
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
 
     Returns:
         float: Matrix elements for JzSz + 0.5(J+S- + J-S+) - S^2
@@ -313,11 +328,11 @@ def n_dot_s(
 
     # ⟨J, S, Ω - 1, Σ - 1|0.5(J+S-)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
     if omega_qn_m == omega_qn_n - 1 and sigma_qn_m == sigma_qn_n - 1:
-        return Fraction(1, 2) * j_plus(j_qn, omega_qn_n) * s_minus(s_qn, sigma_qn_n)
+        return 0.5 * j_plus(j_qn, omega_qn_n) * s_minus(s_qn, sigma_qn_n)
 
     # ⟨J, S, Ω + 1, Σ + 1|0.5(J-S+)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
     if omega_qn_m == omega_qn_n + 1 and sigma_qn_m == sigma_qn_n + 1:
-        return Fraction(1, 2) * j_minus(j_qn, omega_qn_n) * s_plus(s_qn, sigma_qn_n)
+        return 0.5 * j_minus(j_qn, omega_qn_n) * s_plus(s_qn, sigma_qn_n)
 
     return 0.0
 
@@ -326,7 +341,7 @@ def n_dot_s_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: Fraction,
+    j_qn: float,
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
 
@@ -359,16 +374,14 @@ def n_dot_s_vec(
     return result
 
 
-def sp2_plus_sm2(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction
-) -> float:
+def sp2_plus_sm2(m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float) -> float:
     """Return matrix elements for the S+^2 + S-^2 operator.
 
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
 
     Returns:
         float: Matrix elements for S+^2 + S-^2
@@ -416,31 +429,35 @@ def sp2_plus_sm2_vec(
 
 @overload
 def jpsp_plus_jmsm(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: Fraction
+    m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
 ) -> float: ...
 
 
 @overload
 def jpsp_plus_jmsm(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], s_qn: Fraction, j_qn: sp.Symbol
+    m: int,
+    n: int,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
+    j_qn: sp.Symbol,
 ) -> sp.Expr: ...
 
 
 def jpsp_plus_jmsm(
     m: int,
     n: int,
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float,
+    j_qn: float | sp.Symbol,
 ) -> float | sp.Expr:
     """Return matrix elements for the J+S+ + J-S- operator.
 
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
 
     Returns:
         float: Matrix elements for J+S+ + J-S-
@@ -472,7 +489,7 @@ def jpsp_plus_jmsm_vec(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
-    j_qn: Fraction,
+    j_qn: float,
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
@@ -505,26 +522,29 @@ def jpsp_plus_jmsm_vec(
 
 @overload
 def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], j_qn: Fraction
+    m: int, n: int, basis_fns: list[tuple[int, float, float]], j_qn: float
 ) -> float: ...
 
 
 @overload
 def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], j_qn: sp.Symbol
+    m: int, n: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], j_qn: sp.Symbol
 ) -> sp.Expr: ...
 
 
 def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, Fraction, Fraction]], j_qn: Fraction | sp.Symbol
+    m: int,
+    n: int,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    j_qn: float | sp.Symbol,
 ) -> float | sp.Expr:
     """Return matrix elements for the J+^2 + J-^2 operator.
 
     Args:
         m (int): Dummy index m for the bra vector (row)
         n (int): Dummy index n for the ket vector (col)
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        j_qn (float): Quantum number J
 
     Returns:
         float: Matrix elements for J+^2 + J-^2
@@ -547,7 +567,7 @@ def jp2_plus_jm2(
 
 
 def jp2_plus_jm2_vec(
-    lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: Fraction
+    lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: float
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 

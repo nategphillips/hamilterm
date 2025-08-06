@@ -17,7 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import timeit
-from fractions import Fraction
 from functools import cached_property
 
 import numpy as np
@@ -34,7 +33,7 @@ class NumericComputation:
         self,
         term_symbol: str,
         consts: constants.NumericConstants,
-        j_qn: Fraction,
+        j_qn: float,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
     ) -> None:
@@ -43,7 +42,7 @@ class NumericComputation:
         Args:
             term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
             consts (constants.NumericConstants): Molecular constants
-            j_qn (Fraction): Quantum number J
+            j_qn (float): Quantum number J
             max_n_power (int, optional): Maximum power of N matrices to compute, can be 2, 4, 6, 8,
                 10, or 12. Defaults to 4.
             max_acomm_power (int, optional): Maximum power of N used when evaluating
@@ -51,7 +50,7 @@ class NumericComputation:
         """
         self.term_symbol: str = term_symbol
         self.consts: constants.NumericConstants = consts
-        self.j_qn: Fraction = j_qn
+        self.j_qn: float = j_qn
         self.max_n_index: int = max_n_power // 2
         self.max_acomm_index: int = max_acomm_power // 2
 
@@ -63,7 +62,7 @@ class NumericComputation:
             NDArray[np.float64]: Hamiltonian matrix
         """
         s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
 
         dim: int = len(basis_fns)
         n_op_mats = utils.construct_n_operator_matrices(
@@ -136,7 +135,7 @@ class NumericComputation:
     @cached_property
     def hamiltonian_vec(self) -> NDArray[np.float64]:
         s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, Fraction, Fraction]] = utils.generate_basis_fns(s_qn, lambda_qn)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
         lambda_basis, sigma_basis, omega_basis = utils.basis_vectors(basis_fns)
 
         dim: int = len(basis_fns)
@@ -218,7 +217,7 @@ def three_sigma(num: int) -> None:
     # Terms included via the inherent properties of a 3Σ state:
     #   - H_r (all) + H_ss (only S > 1/2 term) + H_sr (only S > 0 term)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: Fraction = Fraction(1)
+    j_qn: float = 1.0
     term_symbol: str = "3S"
 
     # Constants for the v' = 0 B3Σu- state of O2.
@@ -255,7 +254,7 @@ def two_pi(num: int) -> None:
     # Terms included via the inherent properties of a 2Π state:
     #   - H_r (all) + H_so (only S > 0 term) + H_sr (only S > 0 term) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: Fraction = Fraction(5)
+    j_qn: float = 1.0
     term_symbol: str = "2P"
 
     # Constants for the X2Π ground state of OH.
@@ -292,7 +291,7 @@ def five_pi(num: int) -> None:
     # Terms included via the inherent properties of a 5Π state:
     #   - H_r (all) + H_so (all) + H_ss (all) + H_sr (all) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: Fraction = Fraction(5)
+    j_qn: float = 5.0
     term_symbol: str = "5P"
 
     # Random 5Π state filled with all possible constants.
