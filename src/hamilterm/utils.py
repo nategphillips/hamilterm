@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fractions import Fraction
 from typing import overload
 
 import numpy as np
@@ -29,34 +28,34 @@ from hamilterm import options
 
 @overload
 def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction,
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
+    j_qn: float,
     max_n_index: int,
 ) -> list[NDArray[np.float64]]: ...
 
 
 @overload
 def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
+    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: sp.Rational,
     j_qn: sp.Symbol,
     max_n_index: int,
 ) -> list[sp.MutableDenseMatrix]: ...
 
 
 def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
-    s_qn: Fraction,
-    j_qn: Fraction | sp.Symbol,
+    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
+    s_qn: float | sp.Rational,
+    j_qn: float | sp.Symbol,
     max_n_index: int,
 ) -> list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
 
     Args:
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis vectors |Λ, Σ; Ω>
-        s_qn (Fraction): Quantum number S
-        j_qn (Fraction): Quantum number J
+        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
+        s_qn (float): Quantum number S
+        j_qn (float): Quantum number J
         max_n_index (int): Index of the maximum N^{2k} matrix to compute
 
     Returns:
@@ -70,7 +69,7 @@ def construct_n_operator_matrices(
     # operator matrices up to N^12 - if MAX_N_POWER is less than 12, the unused matrices will have
     # all their elements equal to zero.
     n_op_mats: list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]
-    if isinstance(j_qn, Fraction):
+    if isinstance(j_qn, float):
         n_op_mats = [np.zeros((dim, dim)) for _ in range(6)]
     else:
         n_op_mats = [sp.zeros(dim) for _ in range(6)]
@@ -87,55 +86,55 @@ def construct_n_operator_matrices(
     return n_op_mats
 
 
-def parse_term_symbol(term_symbol: str) -> tuple[Fraction, int]:
+def parse_term_symbol(term_symbol: str) -> tuple[float, int]:
     """Parse the molecular term symbol into the quantum numbers S and Λ.
 
     Args:
         term_symbol (str): Molecular term symbol, e.g., "2P" or "3S"
 
     Returns:
-        tuple[Fraction, int]: Quantum numbers S and Λ
+        tuple[float, int]: Quantum numbers S and Λ
     """
     spin_multiplicity: int = int(term_symbol[0])
-    s_qn: Fraction = Fraction(spin_multiplicity - 1, 2)
+    s_qn: float = 0.5 * (spin_multiplicity - 1)
     term: str = term_symbol[1:]
     lambda_qn: int = options.LAMBDA_INT_MAP[term]
 
     return s_qn, lambda_qn
 
 
-def generate_basis_fns(s_qn: Fraction, lambda_qn: int) -> list[tuple[int, Fraction, Fraction]]:
+def generate_basis_fns(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
     """Construct the Hund's case (a) basis set |Λ, Σ; Ω>.
 
     Args:
-        s_qn (Fraction): Quantum number S
+        s_qn (float): Quantum number S
         lambda_qn (int): Quantum number Λ
 
     Returns:
-        list[tuple[int, Fraction, Fraction]]: List of basis vectors |Λ, Σ; Ω>
+        list[tuple[int, float, float]]: List of basis vectors |Λ, Σ; Ω>
     """
     # Possible values for Σ = S, S - 1, ..., -S. There are 2S + 1 total values of Σ.
-    sigmas: list[Fraction] = [-s_qn + i for i in range(int(2 * s_qn) + 1)]
+    sigmas: list[float] = [-s_qn + i for i in range(int(2 * s_qn) + 1)]
 
     # For states with Λ > 1, include both +Λ and -Λ in the basis.
     lambdas: list[int] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
-    basis_fns: list[tuple[int, Fraction, Fraction]] = []
+    basis_fns: list[tuple[int, float, float]] = []
 
     for lam in lambdas:
         for sigma in sigmas:
-            omega: Fraction = lam + sigma
+            omega: float = lam + sigma
             basis_fns.append((lam, sigma, omega))
 
     return basis_fns
 
 
 def basis_vectors(
-    basis_fns: list[tuple[int, Fraction, Fraction]],
+    basis_fns: list[tuple[int, float, float]],
 ) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
     """Construct basis arrays of Λ, Σ, and Ω for use with vectorized functions.
 
     Args:
-        basis_fns (list[tuple[int, Fraction, Fraction]]): List of basis functions |Λ, Σ; Ω>
+        basis_fns (list[tuple[int, float, float]]): List of basis functions |Λ, Σ; Ω>
 
     Returns:
         tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]: Basis vectors for Λ, Σ,
