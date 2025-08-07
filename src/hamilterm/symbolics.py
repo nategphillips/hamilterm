@@ -32,7 +32,7 @@ class SymbolicComputation:
     def __init__(
         self,
         term_symbol: str,
-        consts: constants.SymbolicConstants,
+        consts: constants.ConstantsSym,
         j_qn: sp.Symbol,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
@@ -49,7 +49,7 @@ class SymbolicComputation:
                 anticommutators, can be 0, 2, 4, 6, or 8. Defaults to 2.
         """
         self.term_symbol: str = term_symbol
-        self.consts: constants.SymbolicConstants = consts
+        self.consts: constants.ConstantsSym = consts
         self.j_qn: sp.Symbol = j_qn
         self.max_n_power: int = max_n_power
         self.max_acomm_power: int = max_acomm_power
@@ -314,7 +314,7 @@ def included_hamiltonian_terms(
     s_qn: sp.Rational,
     j_qn: sp.Symbol,
     lambda_qn: int,
-    consts: constants.SymbolicConstants,
+    consts: constants.ConstantsSym,
     max_n_index: int,
     max_acomm_index: int,
 ) -> list[sp.Expr]:
@@ -341,7 +341,7 @@ def included_hamiltonian_terms(
 
     # H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
     if options.INCLUDE_R:
-        r_consts: constants.RotationalConstsNum[sp.Symbol] = consts.rotational
+        r_consts: constants.RotationalConstsSym = consts.rotational
         coeffs: list[tuple[sp.Expr, int]] = [
             (r_consts.B, 2),
             (-r_consts.D, 4),
@@ -357,7 +357,7 @@ def included_hamiltonian_terms(
     # H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
     #   + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
     if options.INCLUDE_SO and lambda_qn > 0 and s_qn > 0:
-        so_consts: constants.SpinOrbitConstsNum[sp.Symbol] = consts.spin_orbit
+        so_consts: constants.SpinOrbitConstsSym = consts.spin_orbit
         L_z: sp.Symbol = sp.Symbol("L_z")
 
         # A(LzSz)
@@ -381,7 +381,7 @@ def included_hamiltonian_terms(
     # H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
     #   + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     if options.INCLUDE_SS and s_qn > sp.Rational(1, 2):
-        ss_consts: constants.SpinSpinConstsNum[sp.Symbol] = consts.spin_spin
+        ss_consts: constants.SpinSpinConstsSym = consts.spin_spin
         # 2λ/3(3Sz^2 - S^2)
         h_ss += sp.Rational(2, 3) * ss_consts.lamda * (3 * S_z**2 - S**2)
 
@@ -406,7 +406,7 @@ def included_hamiltonian_terms(
     # H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
     #   + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
     if options.INCLUDE_SR and s_qn > 0:
-        sr_consts: constants.SpinRotationConstsNum[sp.Symbol] = consts.spin_rotation
+        sr_consts: constants.SpinRotationConstsSym = consts.spin_rotation
         dot: DotSymbol = DotSymbol("dot", commutative=False)
         T_0: sp.Symbol = sp.Symbol("T_0")
         ndots: sp.Expr = sp.Mul(N, dot, S, evaluate=False)
@@ -440,7 +440,7 @@ def included_hamiltonian_terms(
     #   - 0.25[N+S+ + N-S-, p_D * N^2 + p_H * N^4 + p_L * N^6]+
     #   + 0.25[N+^2 + N-^2, q_D * N^2 + q_H * N^4 + q_L * N^6]+
     if options.INCLUDE_LD and lambda_qn == 1:
-        ld_consts: constants.LambdaDoublingConstsNum[sp.Symbol] = consts.lambda_doubling
+        ld_consts: constants.LambdaDoublingConstsSym = consts.lambda_doubling
         Np, Nm, Sp, Sm = sp.symbols("N_+, N_-, S_+, S_-")
 
         # q/2(N+^2 + N-^2)
@@ -507,7 +507,7 @@ def main() -> None:
     j_qn: sp.Symbol = sp.symbols("J")
     term_symbol: str = "2S"
 
-    consts: constants.SymbolicConstants = constants.SymbolicConstants()
+    consts: constants.ConstantsSym = constants.ConstantsSym()
 
     comp: SymbolicComputation = SymbolicComputation(term_symbol, consts, j_qn)
 
