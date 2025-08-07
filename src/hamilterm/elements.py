@@ -17,24 +17,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from typing import overload
 
 import numpy as np
-import sympy as sp
 from numpy.typing import NDArray
 
 from hamilterm import utils
 
 
-@overload
-def j_squared(j_qn: float) -> float: ...
-
-
-@overload
-def j_squared(j_qn: sp.Symbol) -> sp.Expr: ...
-
-
-def j_squared(j_qn: float | sp.Symbol) -> float | sp.Expr:
+def j_squared(j_qn: float) -> float:
     """Return the diagonal matrix element ⟨J|J^2|J⟩ = J(J + 1).
 
     Args:
@@ -46,15 +36,7 @@ def j_squared(j_qn: float | sp.Symbol) -> float | sp.Expr:
     return j_qn * (j_qn + 1)
 
 
-@overload
-def j_plus(j_qn: float, omega_qn_j: float) -> float: ...
-
-
-@overload
-def j_plus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
-
-
-def j_plus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
+def j_plus(j_qn: float, omega_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
 
     Args:
@@ -64,28 +46,14 @@ def j_plus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | 
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
     """
-    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
-
-    if isinstance(j_qn, float):
-        return math.sqrt(result)
-
-    return sp.sqrt(result)
+    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
 def j_plus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
-    j_qn_float: np.float64 = np.float64(j_qn)
-    return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j - 1))
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-@overload
-def j_minus(j_qn: float, omega_qn_j: float) -> float: ...
-
-
-@overload
-def j_minus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
-
-
-def j_minus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
+def j_minus(j_qn: float, omega_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
 
     Args:
@@ -95,28 +63,14 @@ def j_minus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float |
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
     """
-    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
-
-    if isinstance(j_qn, float):
-        return math.sqrt(result)
-
-    return sp.sqrt(result)
+    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
 def j_minus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
-    j_qn_float: np.float64 = np.float64(j_qn)
-    return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j + 1))
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
-@overload
-def s_squared(s_qn: float) -> float: ...
-
-
-@overload
-def s_squared(s_qn: sp.Rational) -> sp.Expr: ...
-
-
-def s_squared(s_qn: float | sp.Rational) -> float | sp.Expr:
+def s_squared(s_qn: float) -> float:
     """Return the diagonal matrix element ⟨S|S^2|S⟩ = S(S + 1).
 
     Args:
@@ -166,29 +120,9 @@ def s_minus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.floa
     return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
 
-@overload
 def n_squared(
     i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def n_squared(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def n_squared(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the N^2 operator.
 
     N^2 = J^2 + S^2 - 2JzSz - (J+S- + J-S+).
@@ -282,29 +216,9 @@ def three_sz2_minus_s2_vec(sigma_basis: NDArray[np.float64], s_qn: float) -> NDA
     return np.diag(3 * sigma_basis**2 - s_squared_vec(s_qn))
 
 
-@overload
 def n_dot_s(
     m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def n_dot_s(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def n_dot_s(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the N·S operator.
 
     N·S = JzSz + 0.5(J+S- + J-S+) - S^2
@@ -427,29 +341,9 @@ def sp2_plus_sm2_vec(
     return result
 
 
-@overload
 def jpsp_plus_jmsm(
     m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def jpsp_plus_jmsm(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def jpsp_plus_jmsm(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the J+S+ + J-S- operator.
 
     Args:
@@ -520,24 +414,12 @@ def jpsp_plus_jmsm_vec(
     return result
 
 
-@overload
-def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, float, float]], j_qn: float
-) -> float: ...
-
-
-@overload
-def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], j_qn: sp.Symbol
-) -> sp.Expr: ...
-
-
 def jp2_plus_jm2(
     m: int,
     n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+    basis_fns: list[tuple[int, float, float]],
+    j_qn: float,
+) -> float:
     """Return matrix elements for the J+^2 + J-^2 operator.
 
     Args:

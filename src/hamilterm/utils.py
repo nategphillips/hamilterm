@@ -16,40 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import overload
-
 import numpy as np
-import sympy as sp
 from numpy.typing import NDArray
 
 from hamilterm import elements as mel
 from hamilterm import options
 
 
-@overload
 def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, float, float]],
-    s_qn: float,
-    j_qn: float,
-    max_n_index: int,
-) -> list[NDArray[np.float64]]: ...
-
-
-@overload
-def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-    max_n_index: int,
-) -> list[sp.MutableDenseMatrix]: ...
-
-
-def construct_n_operator_matrices(
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-    max_n_index: int,
-) -> list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]:
+    basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float, max_n_index: int
+) -> list[NDArray[np.float64]]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
 
     Args:
@@ -68,11 +44,7 @@ def construct_n_operator_matrices(
     # implies the N^2 operator occupies index 0, N^4 occupies index 1, etc. Always initialize the
     # operator matrices up to N^12 - if MAX_N_POWER is less than 12, the unused matrices will have
     # all their elements equal to zero.
-    n_op_mats: list[NDArray[np.float64]] | list[sp.MutableDenseMatrix]
-    if isinstance(j_qn, float):
-        n_op_mats = [np.zeros((dim, dim)) for _ in range(6)]
-    else:
-        n_op_mats = [sp.zeros(dim) for _ in range(6)]
+    n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
 
     # Form the N^2 matrix using the matrix elements above.
     for i in range(dim):

@@ -16,41 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import overload
-
 import numpy as np
-import sympy as sp
 from numpy.typing import NDArray
 
 from hamilterm import constants, utils
 from hamilterm import elements as mel
-from hamilterm.symmat import SymbolicMatrix
 
 
-@overload
 def rotational(
     i: int,
     j: int,
     n_op_mats: list[NDArray[np.float64]],
-    r_consts: constants.RotationalConsts[float],
-) -> float: ...
-
-
-@overload
-def rotational(
-    i: int,
-    j: int,
-    n_op_mats: list[SymbolicMatrix[sp.Expr]],
-    r_consts: constants.RotationalConsts[sp.Symbol],
-) -> sp.Expr: ...
-
-
-def rotational(
-    i: int,
-    j: int,
-    n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
-    r_consts: constants.RotationalConsts[float] | constants.RotationalConsts[sp.Symbol],
-) -> float | sp.Expr:
+    r_consts: constants.RotationalConstsNum,
+) -> float:
     """Return matrix elements for the rotational Hamiltonian.
 
     H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
@@ -76,7 +54,7 @@ def rotational(
 
 
 def rotational_vec(
-    n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConsts[float]
+    n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConstsNum
 ) -> NDArray[np.float64]:
     return (
         r_consts.B * n_op_mats[0]
@@ -88,39 +66,15 @@ def rotational_vec(
     )
 
 
-@overload
 def spin_orbit(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    so_consts: constants.SpinOrbitConsts[float],
+    so_consts: constants.SpinOrbitConstsNum,
     max_acomm_index: int,
-) -> float: ...
-
-
-@overload
-def spin_orbit(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    n_op_mats: list[SymbolicMatrix[sp.Expr]],
-    so_consts: constants.SpinOrbitConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> sp.Expr: ...
-
-
-def spin_orbit(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
-    so_consts: constants.SpinOrbitConsts[float] | constants.SpinOrbitConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
     H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
@@ -141,14 +95,14 @@ def spin_orbit(
     """
     lambda_qn_j, sigma_qn_j, _ = basis_fns[j]
 
-    result: float | sp.Expr = 0.0
+    result: float = 0.0
 
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0.
     if abs(lambda_qn_j) > 0 and s_qn > 0:
         # A(LzSz)
         result += so_consts.A * mel.lz_sz(i, j, basis_fns)
 
-        spin_orbit_cd_consts: list[float | sp.Symbol] = [
+        spin_orbit_cd_consts: list[float] = [
             so_consts.A_D,
             so_consts.A_H,
             so_consts.A_L,
@@ -187,7 +141,7 @@ def spin_orbit_vec(
     sigma_basis: NDArray[np.float64],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    so_consts: constants.SpinOrbitConsts[float],
+    so_consts: constants.SpinOrbitConstsNum,
     max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
@@ -232,39 +186,15 @@ def spin_orbit_vec(
     return result
 
 
-@overload
 def spin_spin(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    ss_consts: constants.SpinSpinConsts[float],
+    ss_consts: constants.SpinSpinConstsNum,
     max_acomm_index: int,
-) -> float: ...
-
-
-@overload
-def spin_spin(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    n_op_mats: list[SymbolicMatrix[sp.Expr]],
-    ss_consts: constants.SpinSpinConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> sp.Expr: ...
-
-
-def spin_spin(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
-    ss_consts: constants.SpinSpinConsts[float] | constants.SpinSpinConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the spin-spin Hamiltonian.
 
     H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
@@ -283,16 +213,16 @@ def spin_spin(
         float: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
             + λ_H/2[2/3(3Sz^2 - S^2), N^4]+ + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     """
-    sigma_qn_j: float | sp.Rational = basis_fns[j][1]
+    sigma_qn_j: float = basis_fns[j][1]
 
-    result: float | sp.Expr = 0.0
+    result: float = 0.0
 
     # Spin-spin coupling is only defined for states with S > 1/2.
     if s_qn > 0.5:
         # 2λ/3(3Sz^2 - S^2)
         result += (2 / 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
 
-        spin_spin_cd_consts: list[float | sp.Symbol] = [ss_consts.lamda_D, ss_consts.lamda_H]
+        spin_spin_cd_consts: list[float] = [ss_consts.lamda_D, ss_consts.lamda_H]
 
         # λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
         for k in range(len(basis_fns)):
@@ -333,7 +263,7 @@ def spin_spin_vec(
     sigma_basis: NDArray[np.float64],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    ss_consts: constants.SpinSpinConsts[float],
+    ss_consts: constants.SpinSpinConstsNum,
     max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
@@ -385,7 +315,6 @@ def spin_spin_vec(
     return result
 
 
-@overload
 def spin_rotation(
     i: int,
     j: int,
@@ -393,34 +322,9 @@ def spin_rotation(
     s_qn: float,
     j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    sr_consts: constants.SpinRotationConsts[float],
+    sr_consts: constants.SpinRotationConstsNum,
     max_acomm_index: int,
-) -> float: ...
-
-
-@overload
-def spin_rotation(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-    n_op_mats: list[SymbolicMatrix[sp.Expr]],
-    sr_consts: constants.SpinRotationConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> sp.Expr: ...
-
-
-def spin_rotation(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-    n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
-    sr_consts: constants.SpinRotationConsts[float] | constants.SpinRotationConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
     H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
@@ -443,14 +347,14 @@ def spin_rotation(
     _, sigma_qn_i, omega_qn_i = basis_fns[i]
     _, sigma_qn_j, omega_qn_j = basis_fns[j]
 
-    result: float | sp.Expr = 0.0
+    result: float = 0.0
 
     # Spin-rotation coupling is only defined for states with S > 0.
     if s_qn > 0:
         # γ(N·S)
         result += sr_consts.gamma * mel.n_dot_s(i, j, basis_fns, s_qn, j_qn)
 
-        spin_rotation_cd_consts: list[float | sp.Symbol] = [
+        spin_rotation_cd_consts: list[float] = [
             sr_consts.gamma_D,
             sr_consts.gamma_H,
             sr_consts.gamma_L,
@@ -504,7 +408,7 @@ def spin_rotation_vec(
     s_qn: float,
     j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    sr_consts: constants.SpinRotationConsts[float],
+    sr_consts: constants.SpinRotationConstsNum,
     max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
@@ -573,7 +477,6 @@ def spin_rotation_vec(
     return result
 
 
-@overload
 def lambda_doubling(
     i: int,
     j: int,
@@ -581,34 +484,9 @@ def lambda_doubling(
     s_qn: float,
     j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    ld_consts: constants.LambdaDoublingConsts[float],
+    ld_consts: constants.LambdaDoublingConstsNum,
     max_acomm_index: int,
-) -> float: ...
-
-
-@overload
-def lambda_doubling(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-    n_op_mats: list[SymbolicMatrix[sp.Expr]],
-    ld_consts: constants.LambdaDoublingConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> sp.Expr: ...
-
-
-def lambda_doubling(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-    n_op_mats: list[NDArray[np.float64]] | list[SymbolicMatrix[sp.Expr]],
-    ld_consts: constants.LambdaDoublingConsts[float] | constants.LambdaDoublingConsts[sp.Symbol],
-    max_acomm_index: int,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
     H_ld = 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2)
@@ -635,7 +513,7 @@ def lambda_doubling(
     lambda_qn_i = basis_fns[i][0]
     lambda_qn_j = basis_fns[j][0]
 
-    result: float | sp.Expr = 0.0
+    result: float = 0.0
 
     # Lambda doubling is only defined for Λ ± 2 transitions.
     if abs(lambda_qn_i - lambda_qn_j) == 2:
@@ -654,19 +532,19 @@ def lambda_doubling(
         # q/2(J+^2 + J-^2)
         result += 0.5 * ld_consts.q * mel.jp2_plus_jm2(i, j, basis_fns, j_qn)
 
-        lambda_doubling_cd_consts_opq: list[float | sp.Expr] = [
+        lambda_doubling_cd_consts_opq: list[float] = [
             ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
             ld_consts.o_H + ld_consts.p_H + ld_consts.q_H,
             ld_consts.o_L + ld_consts.p_L + ld_consts.q_L,
         ]
 
-        lambda_doubling_cd_consts_pq: list[float | sp.Expr] = [
+        lambda_doubling_cd_consts_pq: list[float] = [
             ld_consts.p_D + 2 * ld_consts.q_D,
             ld_consts.p_H + 2 * ld_consts.q_H,
             ld_consts.p_L + 2 * ld_consts.q_L,
         ]
 
-        lambda_doubling_cd_consts_q: list[float | sp.Symbol] = [
+        lambda_doubling_cd_consts_q: list[float] = [
             ld_consts.q_D,
             ld_consts.q_H,
             ld_consts.q_L,
@@ -728,7 +606,7 @@ def lambda_doubling_vec(
     s_qn: float,
     j_qn: float,
     n_op_mats: list[NDArray[np.float64]],
-    ld_consts: constants.LambdaDoublingConsts[float],
+    ld_consts: constants.LambdaDoublingConstsNum,
     max_acomm_index: int,
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
