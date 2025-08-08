@@ -17,24 +17,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from typing import overload
 
 import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
+from sympy import Expr, Integer, Rational, Symbol
 
 from hamilterm import utils
 
 
-@overload
-def j_squared(j_qn: float) -> float: ...
-
-
-@overload
-def j_squared(j_qn: sp.Symbol) -> sp.Expr: ...
-
-
-def j_squared(j_qn: float | sp.Symbol) -> float | sp.Expr:
+def j_squared_orig(j_qn: float) -> float:
     """Return the diagonal matrix element ⟨J|J^2|J⟩ = J(J + 1).
 
     Args:
@@ -46,15 +38,15 @@ def j_squared(j_qn: float | sp.Symbol) -> float | sp.Expr:
     return j_qn * (j_qn + 1)
 
 
-@overload
-def j_plus(j_qn: float, omega_qn_j: float) -> float: ...
+def j_squared_num(j_qn: float) -> float:
+    return j_qn * (j_qn + 1)
 
 
-@overload
-def j_plus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
+def j_squared_sym(j_qn: Symbol) -> Expr:
+    return j_qn * (j_qn + 1)
 
 
-def j_plus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
+def j_plus_orig(j_qn: float, omega_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
 
     Args:
@@ -64,28 +56,18 @@ def j_plus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | 
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
     """
-    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
-
-    if isinstance(j_qn, float):
-        return math.sqrt(result)
-
-    return sp.sqrt(result)
+    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-def j_plus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
-    j_qn_float: np.float64 = np.float64(j_qn)
-    return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j - 1))
+def j_plus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-@overload
-def j_minus(j_qn: float, omega_qn_j: float) -> float: ...
+def j_plus_sym(j_qn: Symbol, omega_qn_j: Rational) -> Expr:
+    return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-@overload
-def j_minus(j_qn: sp.Symbol, omega_qn_j: sp.Rational) -> sp.Expr: ...
-
-
-def j_minus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float | sp.Expr:
+def j_minus_orig(j_qn: float, omega_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
 
     Args:
@@ -95,28 +77,18 @@ def j_minus(j_qn: float | sp.Symbol, omega_qn_j: float | sp.Rational) -> float |
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
     """
-    result: float | sp.Expr = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
-
-    if isinstance(j_qn, float):
-        return math.sqrt(result)
-
-    return sp.sqrt(result)
+    return math.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
-def j_minus_vec(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
-    j_qn_float: np.float64 = np.float64(j_qn)
-    return np.sqrt(j_qn_float * (j_qn_float + 1) - omega_qn_j * (omega_qn_j + 1))
+def j_minus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
-@overload
-def s_squared(s_qn: float) -> float: ...
+def j_minus_sym(j_qn: Symbol, omega_qn_j: Rational) -> Expr:
+    return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
 
 
-@overload
-def s_squared(s_qn: sp.Rational) -> sp.Expr: ...
-
-
-def s_squared(s_qn: float | sp.Rational) -> float | sp.Expr:
+def s_squared_orig(s_qn: float) -> float:
     """Return the diagonal matrix element ⟨S|S^2|S⟩ = S(S + 1).
 
     Args:
@@ -128,11 +100,15 @@ def s_squared(s_qn: float | sp.Rational) -> float | sp.Expr:
     return s_qn * (s_qn + 1)
 
 
-def s_squared_vec(s_qn: float) -> float:
+def s_squared_num(s_qn: float) -> float:
     return s_qn * (s_qn + 1)
 
 
-def s_plus(s_qn: float, sigma_qn_j: float) -> float:
+def s_squared_sym(s_qn: Rational) -> Expr:
+    return s_qn * (s_qn + 1)
+
+
+def s_plus_orig(s_qn: float, sigma_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
 
     Args:
@@ -145,11 +121,15 @@ def s_plus(s_qn: float, sigma_qn_j: float) -> float:
     return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
-def s_plus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+def s_plus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
-def s_minus(s_qn: float, sigma_qn_j: float) -> float:
+def s_plus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
+    return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
+
+
+def s_minus_orig(s_qn: float, sigma_qn_j: float) -> float:
     """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
 
     Args:
@@ -162,33 +142,17 @@ def s_minus(s_qn: float, sigma_qn_j: float) -> float:
     return math.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
 
-def s_minus_vec(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+def s_minus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
 
 
-@overload
-def n_squared(
+def s_minus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
+    return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
+
+
+def n_squared_orig(
     i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def n_squared(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def n_squared(
-    i: int,
-    j: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the N^2 operator.
 
     N^2 = J^2 + S^2 - 2JzSz - (J+S- + J-S+).
@@ -208,20 +172,63 @@ def n_squared(
 
     # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
     if i == j:
-        return j_squared(j_qn) + s_squared(s_qn) - 2 * omega_qn_j * sigma_qn_j
+        return j_squared_orig(j_qn) + s_squared_orig(s_qn) - 2 * omega_qn_j * sigma_qn_j
 
     # ⟨J, S, Ω - 1, Σ - 1|-(J+S-)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
     if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
-        return -j_plus(j_qn, omega_qn_j) * s_minus(s_qn, sigma_qn_j)
+        return -j_plus_orig(j_qn, omega_qn_j) * s_minus_orig(s_qn, sigma_qn_j)
 
     # ⟨J, S, Ω + 1, Σ + 1|-(J-S+)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
     if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
-        return -j_minus(j_qn, omega_qn_j) * s_plus(s_qn, sigma_qn_j)
+        return -j_minus_orig(j_qn, omega_qn_j) * s_plus_orig(s_qn, sigma_qn_j)
 
     return 0.0
 
 
-def lz_sz(m: int, n: int, basis_fns: list[tuple[int, float, float]]) -> int | float:
+def n_squared_num(
+    i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
+) -> float:
+    _, sigma_qn_i, omega_qn_i = basis_fns[i]
+    _, sigma_qn_j, omega_qn_j = basis_fns[j]
+
+    # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
+    if i == j:
+        return j_squared_num(j_qn) + s_squared_num(s_qn) - 2 * omega_qn_j * sigma_qn_j
+
+    # ⟨J, S, Ω - 1, Σ - 1|-(J+S-)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
+    if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
+        return -j_plus_num(j_qn, omega_qn_j) * s_minus_num(s_qn, sigma_qn_j)
+
+    # ⟨J, S, Ω + 1, Σ + 1|-(J-S+)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
+    if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
+        return -j_minus_num(j_qn, omega_qn_j) * s_plus_num(s_qn, sigma_qn_j)
+
+    return 0.0
+
+
+def n_squared_sym(
+    i: int,
+    j: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+) -> Expr:
+    _, sigma_qn_i, omega_qn_i = basis_fns[i]
+    _, sigma_qn_j, omega_qn_j = basis_fns[j]
+
+    if i == j:
+        return j_squared_sym(j_qn) + s_squared_sym(s_qn) - 2 * omega_qn_j * sigma_qn_j
+
+    if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
+        return -j_plus_sym(j_qn, omega_qn_j) * s_minus_sym(s_qn, sigma_qn_j)
+
+    if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
+        return -j_minus_sym(j_qn, omega_qn_j) * s_plus_sym(s_qn, sigma_qn_j)
+
+    return Integer(0)
+
+
+def lz_sz_orig(m: int, n: int, basis_fns: list[tuple[int, float, float]]) -> int | float:
     """Return matrix elements for the LzSz operator.
 
     Args:
@@ -242,16 +249,22 @@ def lz_sz(m: int, n: int, basis_fns: list[tuple[int, float, float]]) -> int | fl
     return 0
 
 
-def lz_sz_vec(
+def lz_sz_num(
     lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64]
 ) -> NDArray[np.float64]:
-    # Operator is completely diagonal, so only m = n terms exist.
-
-    # ⟨Λ, Σ|LzSz|Λ, Σ⟩ = ΛΣ
     return np.diag(lambda_basis * sigma_basis)
 
 
-def three_sz2_minus_s2(
+def lz_sz_sym(m: int, n: int, basis_fns: list[tuple[Integer, Rational, Rational]]) -> Expr:
+    lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
+
+    if m == n:
+        return lambda_qn_n * sigma_qn_n
+
+    return Integer(0)
+
+
+def three_sz2_minus_s2_orig(
     m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float
 ) -> int | float:
     """Return matrix elements for the 3Sz^2 - S^2 operator.
@@ -270,41 +283,29 @@ def three_sz2_minus_s2(
     # Operator is completely diagonal, so only m = n terms exist.
     if m == n:
         # ⟨Λ, Σ|3Sz^2 - S^2|Λ, Σ⟩ = 3Σ^2 - S(S + 1)
-        return 3 * sigma_qn_n**2 - s_squared(s_qn)
+        return 3 * sigma_qn_n**2 - s_squared_orig(s_qn)
 
     return 0
 
 
-def three_sz2_minus_s2_vec(sigma_basis: NDArray[np.float64], s_qn: float) -> NDArray[np.float64]:
-    # Operator is completely diagonal, so only m = n terms exist.
-
-    # ⟨Λ, Σ|3Sz^2 - S^2|Λ, Σ⟩ = 3Σ^2 - S(S + 1)
-    return np.diag(3 * sigma_basis**2 - s_squared_vec(s_qn))
+def three_sz2_minus_s2_num(sigma_basis: NDArray[np.float64], s_qn: float) -> NDArray[np.float64]:
+    return np.diag(3 * sigma_basis**2 - s_squared_num(s_qn))
 
 
-@overload
-def n_dot_s(
+def three_sz2_minus_s2_sym(
+    m: int, n: int, basis_fns: list[tuple[Integer, Rational, Rational]], s_qn: Rational
+) -> Expr:
+    sigma_qn_n = basis_fns[n][1]
+
+    if m == n:
+        return 3 * sigma_qn_n**2 - s_squared_sym(s_qn)
+
+    return Integer(0)
+
+
+def n_dot_s_orig(
     m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def n_dot_s(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def n_dot_s(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float | sp.Rational,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the N·S operator.
 
     N·S = JzSz + 0.5(J+S- + J-S+) - S^2
@@ -324,20 +325,20 @@ def n_dot_s(
 
     # ⟨S, Ω, Σ|JzSz - S^2|S, Ω, Σ⟩ = ΩΣ - S(S + 1)
     if m == n:
-        return omega_qn_n * sigma_qn_n - s_squared(s_qn)
+        return omega_qn_n * sigma_qn_n - s_squared_orig(s_qn)
 
     # ⟨J, S, Ω - 1, Σ - 1|0.5(J+S-)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
     if omega_qn_m == omega_qn_n - 1 and sigma_qn_m == sigma_qn_n - 1:
-        return 0.5 * j_plus(j_qn, omega_qn_n) * s_minus(s_qn, sigma_qn_n)
+        return 0.5 * j_plus_orig(j_qn, omega_qn_n) * s_minus_orig(s_qn, sigma_qn_n)
 
     # ⟨J, S, Ω + 1, Σ + 1|0.5(J-S+)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
     if omega_qn_m == omega_qn_n + 1 and sigma_qn_m == sigma_qn_n + 1:
-        return 0.5 * j_minus(j_qn, omega_qn_n) * s_plus(s_qn, sigma_qn_n)
+        return 0.5 * j_minus_orig(j_qn, omega_qn_n) * s_plus_orig(s_qn, sigma_qn_n)
 
     return 0.0
 
 
-def n_dot_s_vec(
+def n_dot_s_num(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
@@ -345,13 +346,13 @@ def n_dot_s_vec(
 ) -> NDArray[np.float64]:
     dim: int = sigma_basis.size
 
-    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
-    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+    sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
+    omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # Fully diagonal matrix element ⟨S, Ω, Σ|JzSz - S^2|S, Ω, Σ⟩ = ΩΣ - S(S + 1)
-    np.fill_diagonal(result, omega_basis * sigma_basis - s_squared_vec(s_qn))
+    np.fill_diagonal(result, omega_basis * sigma_basis - s_squared_num(s_qn))
 
     # Create masks to denote where the off-diagonal array elements are
     # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
@@ -364,9 +365,9 @@ def n_dot_s_vec(
     #       these where the mask is true, maybe by applying the mask to the Ω and Σ matrices first.
 
     # ⟨J, S, Ω - 1, Σ - 1|0.5(J+S-)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    term_minus: NDArray[np.float64] = 0.5 * j_plus_vec(j_qn, omega_j) * s_minus_vec(s_qn, sigma_j)
+    term_minus: NDArray[np.float64] = 0.5 * j_plus_num(j_qn, omega_j) * s_minus_num(s_qn, sigma_j)
     # ⟨J, S, Ω + 1, Σ + 1|0.5(J-S+)|J, S, Ω, Σ⟩ = 0.5([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    term_plus: NDArray[np.float64] = 0.5 * j_minus_vec(j_qn, omega_j) * s_plus_vec(s_qn, sigma_j)
+    term_plus: NDArray[np.float64] = 0.5 * j_minus_num(j_qn, omega_j) * s_plus_num(s_qn, sigma_j)
 
     result[mask_minus] = term_minus[mask_minus]
     result[mask_plus] = term_plus[mask_plus]
@@ -374,7 +375,31 @@ def n_dot_s_vec(
     return result
 
 
-def sp2_plus_sm2(m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float) -> float:
+def n_dot_s_sym(
+    m: int,
+    n: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+) -> Expr:
+    _, sigma_qn_m, omega_qn_m = basis_fns[m]
+    _, sigma_qn_n, omega_qn_n = basis_fns[n]
+
+    if m == n:
+        return omega_qn_n * sigma_qn_n - s_squared_sym(s_qn)
+
+    if omega_qn_m == omega_qn_n - 1 and sigma_qn_m == sigma_qn_n - 1:
+        return Rational(1, 2) * j_plus_sym(j_qn, omega_qn_n) * s_minus_sym(s_qn, sigma_qn_n)
+
+    if omega_qn_m == omega_qn_n + 1 and sigma_qn_m == sigma_qn_n + 1:
+        return Rational(1, 2) * j_minus_sym(j_qn, omega_qn_n) * s_plus_sym(s_qn, sigma_qn_n)
+
+    return Integer(0)
+
+
+def sp2_plus_sm2_orig(
+    m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float
+) -> float:
     """Return matrix elements for the S+^2 + S-^2 operator.
 
     Args:
@@ -391,22 +416,22 @@ def sp2_plus_sm2(m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn
 
     # ⟨Λ - 2, Σ + 2|S+^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
     if lambda_qn_m == lambda_qn_n - 2 and sigma_qn_m == sigma_qn_n + 2:
-        return s_plus(s_qn, sigma_qn_n) * s_plus(s_qn, sigma_qn_n + 1)
+        return s_plus_orig(s_qn, sigma_qn_n) * s_plus_orig(s_qn, sigma_qn_n + 1)
 
     # ⟨Λ + 2, Σ - 2|S-^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
     if lambda_qn_m == lambda_qn_n + 2 and sigma_qn_m == sigma_qn_n - 2:
-        return s_minus(s_qn, sigma_qn_n) * s_minus(s_qn, sigma_qn_n - 1)
+        return s_minus_orig(s_qn, sigma_qn_n) * s_minus_orig(s_qn, sigma_qn_n - 1)
 
     return 0.0
 
 
-def sp2_plus_sm2_vec(
+def sp2_plus_sm2_num(
     lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64], s_qn: float
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
-    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
-    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
+    lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
+    sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
 
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
@@ -417,9 +442,9 @@ def sp2_plus_sm2_vec(
     mask_minus: NDArray[np.bool] = (lambda_i == lambda_j + 2) & (sigma_i == sigma_j - 2)
 
     # ⟨Λ - 2, Σ + 2|S+^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ + 1)][S(S + 1) - (Σ + 1)(Σ + 2)])^(1/2)
-    term_plus: NDArray[np.float64] = s_plus_vec(s_qn, sigma_j) * s_plus_vec(s_qn, sigma_j + 1)
+    term_plus: NDArray[np.float64] = s_plus_num(s_qn, sigma_j) * s_plus_num(s_qn, sigma_j + 1)
     # ⟨Λ + 2, Σ - 2|S-^2|Λ, Σ⟩ = ([S(S + 1) - Σ(Σ - 1)][S(S + 1) - (Σ - 1)(Σ - 2)])^(1/2)
-    term_minus: NDArray[np.float64] = s_minus_vec(s_qn, sigma_j) * s_minus_vec(s_qn, sigma_j - 1)
+    term_minus: NDArray[np.float64] = s_minus_num(s_qn, sigma_j) * s_minus_num(s_qn, sigma_j - 1)
 
     result[mask_plus] = term_plus[mask_plus]
     result[mask_minus] = term_minus[mask_minus]
@@ -427,29 +452,24 @@ def sp2_plus_sm2_vec(
     return result
 
 
-@overload
-def jpsp_plus_jmsm(
+def sp2_plus_sm2_sym(
+    m: int, n: int, basis_fns: list[tuple[Integer, Rational, Rational]], s_qn: Rational
+) -> Expr:
+    lambda_qn_m, sigma_qn_m, _ = basis_fns[m]
+    lambda_qn_n, sigma_qn_n, _ = basis_fns[n]
+
+    if lambda_qn_m == lambda_qn_n - 2 and sigma_qn_m == sigma_qn_n + 2:
+        return s_plus_sym(s_qn, sigma_qn_n) * s_plus_sym(s_qn, sigma_qn_n + 1)
+
+    if lambda_qn_m == lambda_qn_n + 2 and sigma_qn_m == sigma_qn_n - 2:
+        return s_minus_sym(s_qn, sigma_qn_n) * s_minus_sym(s_qn, sigma_qn_n - 1)
+
+    return Integer(0)
+
+
+def jpsp_plus_jmsm_orig(
     m: int, n: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float: ...
-
-
-@overload
-def jpsp_plus_jmsm(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: sp.Rational,
-    j_qn: sp.Symbol,
-) -> sp.Expr: ...
-
-
-def jpsp_plus_jmsm(
-    m: int,
-    n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    s_qn: float,
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+) -> float:
     """Return matrix elements for the J+S+ + J-S- operator.
 
     Args:
@@ -471,7 +491,7 @@ def jpsp_plus_jmsm(
         and sigma_qn_m == sigma_qn_n + 1
         and omega_qn_m == omega_qn_n - 1
     ):
-        return j_plus(j_qn, omega_qn_n) * s_plus(s_qn, sigma_qn_n)
+        return j_plus_orig(j_qn, omega_qn_n) * s_plus_orig(s_qn, sigma_qn_n)
 
     # ⟨Λ + 2, Ω + 1, Σ - 1|J-S-|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
     if (
@@ -479,12 +499,12 @@ def jpsp_plus_jmsm(
         and sigma_qn_m == sigma_qn_n - 1
         and omega_qn_m == omega_qn_n + 1
     ):
-        return j_minus(j_qn, omega_qn_n) * s_minus(s_qn, sigma_qn_n)
+        return j_minus_orig(j_qn, omega_qn_n) * s_minus_orig(s_qn, sigma_qn_n)
 
     return 0.0
 
 
-def jpsp_plus_jmsm_vec(
+def jpsp_plus_jmsm_num(
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
@@ -493,9 +513,9 @@ def jpsp_plus_jmsm_vec(
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
-    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
-    sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
-    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+    lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
+    sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
+    omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
@@ -510,9 +530,9 @@ def jpsp_plus_jmsm_vec(
     )
 
     # ⟨Λ - 2, Ω - 1, Σ + 1|J+S+|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    term_plus: NDArray[np.float64] = j_plus_vec(j_qn, omega_j) * s_plus_vec(s_qn, sigma_j)
+    term_plus: NDArray[np.float64] = j_plus_num(j_qn, omega_j) * s_plus_num(s_qn, sigma_j)
     # ⟨Λ + 2, Ω + 1, Σ - 1|J-S-|Λ, Ω, Σ⟩ = ([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    term_minus: NDArray[np.float64] = j_minus_vec(j_qn, omega_j) * s_minus_vec(s_qn, sigma_j)
+    term_minus: NDArray[np.float64] = j_minus_num(j_qn, omega_j) * s_minus_num(s_qn, sigma_j)
 
     result[mask_plus] = term_plus[mask_plus]
     result[mask_minus] = term_minus[mask_minus]
@@ -520,24 +540,39 @@ def jpsp_plus_jmsm_vec(
     return result
 
 
-@overload
-def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, float, float]], j_qn: float
-) -> float: ...
-
-
-@overload
-def jp2_plus_jm2(
-    m: int, n: int, basis_fns: list[tuple[int, sp.Rational, sp.Rational]], j_qn: sp.Symbol
-) -> sp.Expr: ...
-
-
-def jp2_plus_jm2(
+def jpsp_plus_jmsm_sym(
     m: int,
     n: int,
-    basis_fns: list[tuple[int, float, float]] | list[tuple[int, sp.Rational, sp.Rational]],
-    j_qn: float | sp.Symbol,
-) -> float | sp.Expr:
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+) -> Expr:
+    lambda_qn_m, sigma_qn_m, omega_qn_m = basis_fns[m]
+    lambda_qn_n, sigma_qn_n, omega_qn_n = basis_fns[n]
+
+    if (
+        lambda_qn_m == lambda_qn_n - 2
+        and sigma_qn_m == sigma_qn_n + 1
+        and omega_qn_m == omega_qn_n - 1
+    ):
+        return j_plus_sym(j_qn, omega_qn_n) * s_plus_sym(s_qn, sigma_qn_n)
+
+    if (
+        lambda_qn_m == lambda_qn_n + 2
+        and sigma_qn_m == sigma_qn_n - 1
+        and omega_qn_m == omega_qn_n + 1
+    ):
+        return j_minus_sym(j_qn, omega_qn_n) * s_minus_sym(s_qn, sigma_qn_n)
+
+    return Integer(0)
+
+
+def jp2_plus_jm2_orig(
+    m: int,
+    n: int,
+    basis_fns: list[tuple[int, float, float]],
+    j_qn: float,
+) -> float:
     """Return matrix elements for the J+^2 + J-^2 operator.
 
     Args:
@@ -556,23 +591,23 @@ def jp2_plus_jm2(
     #       is an anomalously commutative operator.
     # ⟨Λ - 2, Ω - 2|J+^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
     if lambda_qn_m == lambda_qn_n - 2 and omega_qn_m == omega_qn_n - 2:
-        return j_plus(j_qn, omega_qn_n) * j_plus(j_qn, omega_qn_n - 1)
+        return j_plus_orig(j_qn, omega_qn_n) * j_plus_orig(j_qn, omega_qn_n - 1)
 
     # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
     # ⟨Λ + 2, Ω + 2|J-^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
     if lambda_qn_m == lambda_qn_n + 2 and omega_qn_m == omega_qn_n + 2:
-        return j_minus(j_qn, omega_qn_n) * j_minus(j_qn, omega_qn_n + 1)
+        return j_minus_orig(j_qn, omega_qn_n) * j_minus_orig(j_qn, omega_qn_n + 1)
 
     return 0.0
 
 
-def jp2_plus_jm2_vec(
+def jp2_plus_jm2_num(
     lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: float
 ) -> NDArray[np.float64]:
     dim: int = lambda_basis.size
 
-    lambda_i, lambda_j = utils.form_basis_matrices(lambda_basis)
-    omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+    lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
+    omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
@@ -585,12 +620,30 @@ def jp2_plus_jm2_vec(
     # NOTE: 25/05/29 - The Ω - 1 being plugged into the second J+ matrix element occurs since J
     #       is an anomalously commutative operator.
     # ⟨Λ - 2, Ω - 2|J+^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω - 1)][J(J + 1) - (Ω - 1)(Ω - 2)])^(1/2)
-    term_plus: NDArray[np.float64] = j_plus_vec(j_qn, omega_j) * j_plus_vec(j_qn, omega_j - 1)
+    term_plus: NDArray[np.float64] = j_plus_num(j_qn, omega_j) * j_plus_num(j_qn, omega_j - 1)
     # NOTE: 25/05/29 - The same thing happens here with Ω + 1.
     # ⟨Λ + 2, Ω + 2|J-^2|Λ, Ω⟩ = ([J(J + 1) - Ω(Ω + 1)][J(J + 1) - (Ω + 1)(Ω + 2)])^(1/2)
-    term_minus: NDArray[np.float64] = j_minus_vec(j_qn, omega_j) * j_minus_vec(j_qn, omega_j + 1)
+    term_minus: NDArray[np.float64] = j_minus_num(j_qn, omega_j) * j_minus_num(j_qn, omega_j + 1)
 
     result[mask_plus] = term_plus[mask_plus]
     result[mask_minus] = term_minus[mask_minus]
 
     return result
+
+
+def jp2_plus_jm2_sym(
+    m: int,
+    n: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    j_qn: Symbol,
+) -> Expr:
+    lambda_qn_m, _, omega_qn_m = basis_fns[m]
+    lambda_qn_n, _, omega_qn_n = basis_fns[n]
+
+    if lambda_qn_m == lambda_qn_n - 2 and omega_qn_m == omega_qn_n - 2:
+        return j_plus_sym(j_qn, omega_qn_n) * j_plus_sym(j_qn, omega_qn_n - 1)
+
+    if lambda_qn_m == lambda_qn_n + 2 and omega_qn_m == omega_qn_n + 2:
+        return j_minus_sym(j_qn, omega_qn_n) * j_minus_sym(j_qn, omega_qn_n + 1)
+
+    return Integer(0)

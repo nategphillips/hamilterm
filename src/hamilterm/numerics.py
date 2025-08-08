@@ -32,7 +32,7 @@ class NumericComputation:
     def __init__(
         self,
         term_symbol: str,
-        consts: constants.NumericConstants,
+        consts: constants.ConstantsNum,
         j_qn: float,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
@@ -49,7 +49,7 @@ class NumericComputation:
                 anticommutators, can be 0, 2, 4, 6, or 8. Defaults to 2.
         """
         self.term_symbol: str = term_symbol
-        self.consts: constants.NumericConstants = consts
+        self.consts: constants.ConstantsNum = consts
         self.j_qn: float = j_qn
         self.max_n_index: int = max_n_power // 2
         self.max_acomm_index: int = max_acomm_power // 2
@@ -61,11 +61,11 @@ class NumericComputation:
         Returns:
             NDArray[np.float64]: Hamiltonian matrix
         """
-        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
+        s_qn, lambda_qn = utils.parse_term_symbol_orig(self.term_symbol)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_orig(s_qn, lambda_qn)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(
+        n_op_mats = utils.construct_n_operator_matrices_orig(
             basis_fns, s_qn, self.j_qn, self.max_n_index
         )
 
@@ -85,9 +85,9 @@ class NumericComputation:
         for i in range(dim):
             for j in range(dim):
                 h_mat[i, j] = (
-                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
+                    switch_r * terms.rotational_orig(i, j, n_op_mats, self.consts.rotational)
                     + switch_so
-                    * terms.spin_orbit(
+                    * terms.spin_orbit_orig(
                         i,
                         j,
                         basis_fns,
@@ -97,7 +97,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_ss
-                    * terms.spin_spin(
+                    * terms.spin_spin_orig(
                         i,
                         j,
                         basis_fns,
@@ -107,7 +107,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_sr
-                    * terms.spin_rotation(
+                    * terms.spin_rotation_orig(
                         i,
                         j,
                         basis_fns,
@@ -118,7 +118,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_ld
-                    * terms.lambda_doubling(
+                    * terms.lambda_doubling_orig(
                         i,
                         j,
                         basis_fns,
@@ -134,48 +134,48 @@ class NumericComputation:
 
     @cached_property
     def hamiltonian_vec(self) -> NDArray[np.float64]:
-        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
-        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors(basis_fns)
+        s_qn, lambda_qn = utils.parse_term_symbol_num(self.term_symbol)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_num(s_qn, lambda_qn)
+        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(
+        n_op_mats = utils.construct_n_operator_matrices_num(
             basis_fns, s_qn, self.j_qn, self.max_n_index
         )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
         if options.INCLUDE_R:
-            h_mat += terms.rotational_vec(n_op_mats, self.consts.rotational)
+            h_mat += terms.rotational_num(n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
-            h_mat += terms.spin_orbit_vec(
+            h_mat += terms.spin_orbit_num(
                 lambda_basis,
                 sigma_basis,
-                float(s_qn),
+                s_qn,
                 n_op_mats,
                 self.consts.spin_orbit,
                 self.max_acomm_index,
             )
         if options.INCLUDE_SS:
-            h_mat += terms.spin_spin_vec(
-                sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin, self.max_acomm_index
+            h_mat += terms.spin_spin_num(
+                sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
             )
         if options.INCLUDE_SR:
-            h_mat += terms.spin_rotation_vec(
+            h_mat += terms.spin_rotation_num(
                 sigma_basis,
                 omega_basis,
-                float(s_qn),
+                s_qn,
                 self.j_qn,
                 n_op_mats,
                 self.consts.spin_rotation,
                 self.max_acomm_index,
             )
         if options.INCLUDE_LD:
-            h_mat += terms.lambda_doubling_vec(
+            h_mat += terms.lambda_doubling_num(
                 lambda_basis,
                 sigma_basis,
                 omega_basis,
-                float(s_qn),
+                s_qn,
                 self.j_qn,
                 n_op_mats,
                 self.consts.lambda_doubling,
@@ -221,10 +221,10 @@ def three_sigma(num: int) -> None:
     term_symbol: str = "3S"
 
     # Constants for the v' = 0 B3Σu- state of O2.
-    consts: constants.NumericConstants = constants.NumericConstants(
-        rotational=constants.RotationalConsts.numeric(B=0.8132, D=4.50e-06),
-        spin_spin=constants.SpinSpinConsts.numeric(lamda=1.69),
-        spin_rotation=constants.SpinRotationConsts.numeric(gamma=-0.028),
+    consts: constants.ConstantsNum = constants.ConstantsNum(
+        rotational=constants.RotationalConstsNum(B=0.8132, D=4.50e-06),
+        spin_spin=constants.SpinSpinConstsNum(lamda=1.69),
+        spin_rotation=constants.SpinRotationConstsNum(gamma=-0.028),
     )
 
     comp: NumericComputation = NumericComputation(
@@ -258,10 +258,10 @@ def two_pi(num: int) -> None:
     term_symbol: str = "2P"
 
     # Constants for the X2Π ground state of OH.
-    consts: constants.NumericConstants = constants.NumericConstants(
-        rotational=constants.RotationalConsts.numeric(B=18.55),
-        spin_orbit=constants.SpinOrbitConsts.numeric(A=-139.21),
-        lambda_doubling=constants.LambdaDoublingConsts.numeric(p=0.235, q=-0.0391),
+    consts: constants.ConstantsNum = constants.ConstantsNum(
+        rotational=constants.RotationalConstsNum(B=18.55),
+        spin_orbit=constants.SpinOrbitConstsNum(A=-139.21),
+        lambda_doubling=constants.LambdaDoublingConstsNum(p=0.235, q=-0.0391),
     )
 
     comp: NumericComputation = NumericComputation(
@@ -295,16 +295,16 @@ def five_pi(num: int) -> None:
     term_symbol: str = "5P"
 
     # Random 5Π state filled with all possible constants.
-    consts: constants.NumericConstants = constants.NumericConstants(
-        rotational=constants.RotationalConsts.numeric(
+    consts: constants.ConstantsNum = constants.ConstantsNum(
+        rotational=constants.RotationalConstsNum(
             B=18.55, D=4.50e-06, H=4.50e-06, L=4.50e-06, M=4.50e-06, P=4.50e-06
         ),
-        spin_orbit=constants.SpinOrbitConsts.numeric(A=-139.21, A_D=1, A_H=1, A_L=1, A_M=1, eta=1),
-        spin_spin=constants.SpinSpinConsts.numeric(lamda=1.69, lamda_D=1, lamda_H=1, theta=1),
-        spin_rotation=constants.SpinRotationConsts.numeric(
+        spin_orbit=constants.SpinOrbitConstsNum(A=-139.21, A_D=1, A_H=1, A_L=1, A_M=1, eta=1),
+        spin_spin=constants.SpinSpinConstsNum(lamda=1.69, lamda_D=1, lamda_H=1, theta=1),
+        spin_rotation=constants.SpinRotationConstsNum(
             gamma=-0.028, gamma_D=-0.028, gamma_H=-0.028, gamma_L=-0.028, gamma_S=-0.028
         ),
-        lambda_doubling=constants.LambdaDoublingConsts.numeric(
+        lambda_doubling=constants.LambdaDoublingConstsNum(
             o=0.1,
             p=0.235,
             q=-0.0391,
