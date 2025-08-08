@@ -55,85 +55,7 @@ class NumericComputation:
         self.max_acomm_index: int = max_acomm_power // 2
 
     @cached_property
-    def hamiltonian_orig(self) -> NDArray[np.float64]:
-        """Build a Hamiltonian matrix for numeric computation.
-
-        Returns:
-            NDArray[np.float64]: Hamiltonian matrix
-        """
-        s_qn, lambda_qn = utils.parse_term_symbol_orig(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_orig(s_qn, lambda_qn)
-
-        dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices_orig(
-            basis_fns, s_qn, self.j_qn, self.max_n_index
-        )
-
-        h_mat: NDArray[np.float64] = np.zeros((dim, dim))
-
-        switch_r, switch_so, switch_ss, switch_sr, switch_ld = map(
-            int,
-            [
-                options.INCLUDE_R,
-                options.INCLUDE_SO,
-                options.INCLUDE_SS,
-                options.INCLUDE_SR,
-                options.INCLUDE_LD,
-            ],
-        )
-
-        for i in range(dim):
-            for j in range(dim):
-                h_mat[i, j] = (
-                    switch_r * terms.rotational_orig(i, j, n_op_mats, self.consts.rotational)
-                    + switch_so
-                    * terms.spin_orbit_orig(
-                        i,
-                        j,
-                        basis_fns,
-                        s_qn,
-                        n_op_mats,
-                        self.consts.spin_orbit,
-                        self.max_acomm_index,
-                    )
-                    + switch_ss
-                    * terms.spin_spin_orig(
-                        i,
-                        j,
-                        basis_fns,
-                        s_qn,
-                        n_op_mats,
-                        self.consts.spin_spin,
-                        self.max_acomm_index,
-                    )
-                    + switch_sr
-                    * terms.spin_rotation_orig(
-                        i,
-                        j,
-                        basis_fns,
-                        s_qn,
-                        self.j_qn,
-                        n_op_mats,
-                        self.consts.spin_rotation,
-                        self.max_acomm_index,
-                    )
-                    + switch_ld
-                    * terms.lambda_doubling_orig(
-                        i,
-                        j,
-                        basis_fns,
-                        s_qn,
-                        self.j_qn,
-                        n_op_mats,
-                        self.consts.lambda_doubling,
-                        self.max_acomm_index,
-                    )
-                )
-
-        return h_mat
-
-    @cached_property
-    def hamiltonian_vec(self) -> NDArray[np.float64]:
+    def hamiltonian(self) -> NDArray[np.float64]:
         s_qn, lambda_qn = utils.parse_term_symbol_num(self.term_symbol)
         basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_num(s_qn, lambda_qn)
         lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns)
@@ -192,7 +114,7 @@ class NumericComputation:
             EighResult: Eigenvalues and eigenvectors
         """
         # The Hamiltonian matrix is always Hermitian, so eigh can be used.
-        return np.linalg.eigh(self.hamiltonian_vec)
+        return np.linalg.eigh(self.hamiltonian)
 
     @property
     def eigenvalues(self) -> NDArray[np.float64]:
@@ -227,27 +149,11 @@ def three_sigma(num: int) -> None:
         spin_rotation=constants.SpinRotationConstsNum(gamma=-0.028),
     )
 
-    comp: NumericComputation = NumericComputation(
-        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
-    )
-
-    def bench_orig():
+    def bench():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_orig
+        comp.hamiltonian
 
-    def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_vec
-
-    print(f"{num}\t3Σ Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
-    print(f"{num}\t3Σ Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
-
-    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
-    evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
-
-    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
-    assert np.allclose(evals_orig, evals_vec)
-    assert np.allclose(evects_orig, evects_vec)
+    print(f"{num}\t3Σ Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
 
 
 def two_pi(num: int) -> None:
@@ -264,27 +170,11 @@ def two_pi(num: int) -> None:
         lambda_doubling=constants.LambdaDoublingConstsNum(p=0.235, q=-0.0391),
     )
 
-    comp: NumericComputation = NumericComputation(
-        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
-    )
-
-    def bench_orig():
+    def bench():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_orig
+        comp.hamiltonian
 
-    def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_vec
-
-    print(f"{num}\t2Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
-    print(f"{num}\t2Π Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
-
-    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
-    evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
-
-    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
-    assert np.allclose(evals_orig, evals_vec)
-    assert np.allclose(evects_orig, evects_vec)
+    print(f"{num}\t2Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
 
 
 def five_pi(num: int) -> None:
@@ -320,34 +210,18 @@ def five_pi(num: int) -> None:
         ),
     )
 
-    comp: NumericComputation = NumericComputation(
-        term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8
-    )
-
-    def bench_orig():
+    def bench():
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_orig
+        comp.hamiltonian
 
-    def bench_vec():
-        comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
-        comp.hamiltonian_vec
-
-    print(f"{num}\t5Π Hamiltonians - original:   {timeit.timeit(bench_orig, number=num)} s")
-    print(f"{num}\t5Π Hamiltonians - vectorized: {timeit.timeit(bench_vec, number=num)} s")
-
-    evals_orig, evects_orig = np.linalg.eigh(comp.hamiltonian_orig)
-    evals_vec, evects_vec = np.linalg.eigh(comp.hamiltonian_vec)
-
-    assert np.allclose(comp.hamiltonian_orig, comp.hamiltonian_vec)
-    assert np.allclose(evals_orig, evals_vec)
-    assert np.allclose(evects_orig, evects_vec)
+    print(f"{num}\t5Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
 
 
 def main() -> None:
     """Entry point."""
     three_sigma(1000)
-    two_pi(100)
-    five_pi(10)
+    two_pi(500)
+    five_pi(200)
 
 
 if __name__ == "__main__":

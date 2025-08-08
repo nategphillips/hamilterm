@@ -48,8 +48,11 @@ def safe_rational(num: int, denom: int) -> Rational:
     return r
 
 
-def construct_n_operator_matrices_orig(
-    basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float, max_n_index: int
+def construct_n_operator_matrices_num(
+    basis_fns: list[tuple[int, float, float]],
+    s_qn: float,
+    j_qn: float,
+    max_n_index: int,
 ) -> list[NDArray[np.float64]]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
 
@@ -74,29 +77,9 @@ def construct_n_operator_matrices_orig(
     # Form the N^2 matrix using the matrix elements above.
     for i in range(dim):
         for j in range(dim):
-            n_op_mats[0][i, j] = mel.n_squared_orig(i, j, basis_fns, s_qn, j_qn)
-
-    # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
-    for i in range(1, max_n_index):
-        n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
-
-    return n_op_mats
-
-
-def construct_n_operator_matrices_num(
-    basis_fns: list[tuple[int, float, float]],
-    s_qn: float,
-    j_qn: float,
-    max_n_index: int,
-) -> list[NDArray[np.float64]]:
-    dim: int = len(basis_fns)
-
-    n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
-
-    for i in range(dim):
-        for j in range(dim):
             n_op_mats[0][i, j] = mel.n_squared_num(i, j, basis_fns, s_qn, j_qn)
 
+    # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
     for i in range(1, max_n_index):
         n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
 
@@ -123,7 +106,7 @@ def construct_n_operator_matrices_sym(
     return n_op_mats
 
 
-def parse_term_symbol_orig(term_symbol: str) -> tuple[float, int]:
+def parse_term_symbol_num(term_symbol: str) -> tuple[float, int]:
     """Parse the molecular term symbol into the quantum numbers S and Λ.
 
     Args:
@@ -132,15 +115,6 @@ def parse_term_symbol_orig(term_symbol: str) -> tuple[float, int]:
     Returns:
         tuple[float, int]: Quantum numbers S and Λ
     """
-    spin_multiplicity: int = int(term_symbol[0])
-    s_qn: float = 0.5 * (spin_multiplicity - 1)
-    term: str = term_symbol[1:]
-    lambda_qn: int = options.LAMBDA_INT_MAP[term]
-
-    return s_qn, lambda_qn
-
-
-def parse_term_symbol_num(term_symbol: str) -> tuple[float, int]:
     spin_multiplicity: int = int(term_symbol[0])
     s_qn: float = 0.5 * (spin_multiplicity - 1)
     term: str = term_symbol[1:]
@@ -158,7 +132,7 @@ def parse_term_symbol_sym(term_symbol: str) -> tuple[Rational, Integer]:
     return s_qn, lambda_qn
 
 
-def generate_basis_fns_orig(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
+def generate_basis_fns_num(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
     """Construct the Hund's case (a) basis set |Λ, Σ; Ω>.
 
     Args:
@@ -172,20 +146,6 @@ def generate_basis_fns_orig(s_qn: float, lambda_qn: int) -> list[tuple[int, floa
     sigmas: list[float] = [-s_qn + i for i in range(int(2 * s_qn) + 1)]
 
     # For states with Λ > 1, include both +Λ and -Λ in the basis.
-    lambdas: list[int] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
-    basis_fns: list[tuple[int, float, float]] = []
-
-    for lam in lambdas:
-        for sigma in sigmas:
-            omega: float = lam + sigma
-            basis_fns.append((lam, sigma, omega))
-
-    return basis_fns
-
-
-def generate_basis_fns_num(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
-    sigmas: list[float] = [-s_qn + i for i in range(int(2 * s_qn) + 1)]
-
     lambdas: list[int] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
     basis_fns: list[tuple[int, float, float]] = []
 
