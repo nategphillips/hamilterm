@@ -70,8 +70,9 @@ class SymbolicComputation:
         )
 
         dim: int = len(basis_fns)
+
         n_op_mats = utils.construct_n_operator_matrices_sym(
-            basis_fns, s_qn, self.j_qn, self.max_n_index
+            basis_fns, s_qn, self.j_qn, self.max_n_index, dim
         )
 
         h_mat: MutableDenseMatrix = sp.zeros(dim)

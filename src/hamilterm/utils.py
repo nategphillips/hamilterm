@@ -53,6 +53,7 @@ def construct_n_operator_matrices_num(
     s_qn: float,
     j_qn: float,
     max_n_index: int,
+    dim: int,
 ) -> list[NDArray[np.float64]]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
 
@@ -65,9 +66,6 @@ def construct_n_operator_matrices_num(
     Returns:
         list[NDArray[np.float64]]: N operator matrices
     """
-    # The number of basis functions determine the size of the N operator matrix.
-    dim: int = len(basis_fns)
-
     # Each N^{2k} operator, where k is an integer, will have its own operator matrix. This notation
     # implies the N^2 operator occupies index 0, N^4 occupies index 1, etc. Always initialize the
     # operator matrices up to N^12 - if MAX_N_POWER is less than 12, the unused matrices will have
@@ -91,9 +89,8 @@ def construct_n_operator_matrices_sym(
     s_qn: Rational,
     j_qn: Symbol,
     max_n_index: int,
+    dim: int,
 ) -> list[MutableDenseMatrix]:
-    dim: int = len(basis_fns)
-
     n_op_mats: list[MutableDenseMatrix] = [sp.zeros(dim) for _ in range(6)]
 
     for i in range(dim):
@@ -174,7 +171,7 @@ def generate_basis_fns_sym(
 
 
 def basis_vectors_num(
-    basis_fns: list[tuple[int, float, float]],
+    basis_fns: list[tuple[int, float, float]], dim: int
 ) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
     """Construct basis arrays of Λ, Σ, and Ω for use with vectorized functions.
 
@@ -185,7 +182,6 @@ def basis_vectors_num(
         tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]: Basis vectors for Λ, Σ,
             and Ω
     """
-    dim: int = len(basis_fns)
     lambda_basis: NDArray[np.int64] = np.empty(dim, dtype=np.int64)
     sigma_basis: NDArray[np.float64] = np.empty(dim, dtype=np.float64)
     omega_basis: NDArray[np.float64] = np.empty(dim, dtype=np.float64)

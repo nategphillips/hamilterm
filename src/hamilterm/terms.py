@@ -72,6 +72,7 @@ def spin_orbit_num(
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConstsNum,
     max_acomm_index: int,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
@@ -91,8 +92,6 @@ def spin_orbit_num(
         float: Matrix elements for A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+
             + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+ + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
     """
-    dim: int = lambda_basis.size
-
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. Since the Λ values in the
@@ -183,6 +182,7 @@ def spin_spin_num(
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConstsNum,
     max_acomm_index: int,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the spin-spin Hamiltonian.
 
@@ -202,8 +202,6 @@ def spin_spin_num(
         float: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
             + λ_H/2[2/3(3Sz^2 - S^2), N^4]+ + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     """
-    dim: int = sigma_basis.size
-
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # Spin-spin coupling is only defined for states with S > 1/2.
@@ -306,6 +304,7 @@ def spin_rotation_num(
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConstsNum,
     max_acomm_index: int,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
@@ -326,8 +325,6 @@ def spin_rotation_num(
         float: Matrix elements for γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
             + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
     """
-    dim: int = sigma_basis.size
-
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # Spin-rotation coupling is only defined for states with S > 0.
@@ -335,7 +332,7 @@ def spin_rotation_num(
         return result
 
     # γ(N·S)
-    n_dot_s: NDArray[np.float64] = mel.n_dot_s_num(sigma_basis, omega_basis, s_qn, j_qn)
+    n_dot_s: NDArray[np.float64] = mel.n_dot_s_num(sigma_basis, omega_basis, s_qn, j_qn, dim)
     result += sr_consts.gamma * n_dot_s
 
     spin_rotation_cd_consts: NDArray[np.float64] = np.array(
@@ -458,6 +455,7 @@ def lambda_doubling_num(
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConstsNum,
     max_acomm_index: int,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
@@ -482,8 +480,6 @@ def lambda_doubling_num(
             + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
             + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
     """
-    dim: int = lambda_basis.size
-
     result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # Lambda doubling is only defined for Λ ± 2 transitions, i.e., Π states.
@@ -491,17 +487,17 @@ def lambda_doubling_num(
         return result
 
     # 0.5(o + p + q)(S+^2 + S-^2)
-    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_num(lambda_basis, sigma_basis, s_qn)
+    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_num(lambda_basis, sigma_basis, s_qn, dim)
     result += 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * sp2_plus_sm2
 
     # -0.5(p + 2q)(J+S+ + J-S-)
     jpsp_plus_jmsm: NDArray[np.float64] = mel.jpsp_plus_jmsm_num(
-        lambda_basis, sigma_basis, omega_basis, s_qn, j_qn
+        lambda_basis, sigma_basis, omega_basis, s_qn, j_qn, dim
     )
     result += -0.5 * (ld_consts.p + 2 * ld_consts.q) * jpsp_plus_jmsm
 
     # q/2(J+^2 + J-^2)
-    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_num(lambda_basis, omega_basis, j_qn)
+    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_num(lambda_basis, omega_basis, j_qn, dim)
     result += 0.5 * ld_consts.q * jp2_plus_jm2
 
     lambda_doubling_cd_consts_opq: NDArray[np.float64] = np.array(

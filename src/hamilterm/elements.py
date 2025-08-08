@@ -277,6 +277,7 @@ def n_dot_s_num(
     omega_basis: NDArray[np.float64],
     s_qn: float,
     j_qn: float,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the N·S operator.
 
@@ -292,8 +293,6 @@ def n_dot_s_num(
     Returns:
         float: Matrix elements for JzSz + 0.5(J+S- + J-S+) - S^2
     """
-    dim: int = sigma_basis.size
-
     sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
     omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
@@ -345,7 +344,7 @@ def n_dot_s_sym(
 
 
 def sp2_plus_sm2_num(
-    lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64], s_qn: float
+    lambda_basis: NDArray[np.int64], sigma_basis: NDArray[np.float64], s_qn: float, dim: int
 ) -> NDArray[np.float64]:
     """Return matrix elements for the S+^2 + S-^2 operator.
 
@@ -358,8 +357,6 @@ def sp2_plus_sm2_num(
     Returns:
         float: Matrix elements for S+^2 + S-^2
     """
-    dim: int = lambda_basis.size
-
     lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
     sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
 
@@ -402,6 +399,7 @@ def jpsp_plus_jmsm_num(
     omega_basis: NDArray[np.float64],
     s_qn: float,
     j_qn: float,
+    dim: int,
 ) -> NDArray[np.float64]:
     """Return matrix elements for the J+S+ + J-S- operator.
 
@@ -415,8 +413,6 @@ def jpsp_plus_jmsm_num(
     Returns:
         float: Matrix elements for J+S+ + J-S-
     """
-    dim: int = lambda_basis.size
-
     lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
     sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
     omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
@@ -471,7 +467,7 @@ def jpsp_plus_jmsm_sym(
 
 
 def jp2_plus_jm2_num(
-    lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: float
+    lambda_basis: NDArray[np.int64], omega_basis: NDArray[np.float64], j_qn: float, dim: int
 ) -> NDArray[np.float64]:
     """Return matrix elements for the J+^2 + J-^2 operator.
 
@@ -484,8 +480,6 @@ def jp2_plus_jm2_num(
     Returns:
         float: Matrix elements for J+^2 + J-^2
     """
-    dim: int = lambda_basis.size
-
     lambda_i, lambda_j = utils.form_basis_matrices_num(lambda_basis)
     omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
