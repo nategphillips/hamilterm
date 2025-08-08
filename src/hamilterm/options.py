@@ -23,18 +23,6 @@ INCLUDE_SS: bool = True
 INCLUDE_SR: bool = True
 INCLUDE_LD: bool = True
 
-# MAX_N_POWER can be 2, 4, 6, 8, 10, or 12. Powers above 12 have no associated constants and
-# therefore will not contribute to the calculation.
-MAX_N_POWER: int = 4
-# Specify the maximum power of N used when evaluating anticommutators. A value of 0 will skip the
-# evaluation of all anticommutators.
-MAX_N_ACOMM_POWER: int = 2
-
-# Printing options for symbolic computations.
-PRINT_TERM: bool = False
-PRINT_TEX: bool = True
-
-MAX_POWER_INDEX: int = MAX_N_POWER // 2
-MAX_ACOMM_INDEX: int = MAX_N_ACOMM_POWER // 2
-LAMBDA_INT_MAP: dict[str, int] = {"Sigma": 0, "Pi": 1}
-LAMBDA_STR_MAP: dict[str, str] = {"Sigma": "Σ", "Pi": "Π"}
+LAMBDA_INT_MAP: dict[str, int] = {"S": 0, "P": 1}
+LAMBDA_STR_MAP: dict[str, str] = {"S": "Σ", "P": "Π"}
+LAMBDA_LONG_MAP: dict[str, str] = {"S": "Sigma", "P": "Pi"}
