@@ -1,6 +1,6 @@
 # hamilterm
 
-Symbolically computes the rotational Hamiltonian for a given molecular term symbol.
+Symbolically or numerically computes the rotational Hamiltonian for a given molecular term symbol.
 
 ## Example Output
 
@@ -54,8 +54,9 @@ $$
 
 Computing and simplifying the eigenvalues for $^2\Pi$ and higher states is extremely slow with SymPy. Some options for future speedups include:
 
-- Replacing SymPy with SymEngine.
-- Switching to Julia and using Symbolics.jl.
+- Vectorizing symbolic computations
+- Replacing SymPy with SymEngine
+- Switching to Julia and using Symbolics.jl
 
 ## License and Copyright
 
