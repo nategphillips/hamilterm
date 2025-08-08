@@ -186,35 +186,24 @@ def n_squared_orig(
 
 
 def n_squared_num(
-    sigma_basis: NDArray[np.float64], omega_basis: NDArray[np.float64], s_qn: float, j_qn: float
-) -> NDArray[np.float64]:
-    dim: int = sigma_basis.size
+    i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
+) -> float:
+    _, sigma_qn_i, omega_qn_i = basis_fns[i]
+    _, sigma_qn_j, omega_qn_j = basis_fns[j]
 
-    sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
-    omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
-
-    result: NDArray[np.float64] = np.zeros((dim, dim))
-
-    # Fully diagonal matrix element ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
-    np.fill_diagonal(
-        result, j_squared_num(j_qn) + s_squared_num(s_qn) - 2 * omega_basis * sigma_basis
-    )
-
-    # Create masks to denote where the off-diagonal array elements are
-    # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
-    mask_minus: NDArray[np.bool] = (omega_i == omega_j - 1) & (sigma_i == sigma_j - 1)
-    # Denote the areas in the array where Ω_i = Ω_j + 1 and Σ_i = Σ_j + 1
-    mask_plus: NDArray[np.bool] = (omega_i == omega_j + 1) & (sigma_i == sigma_j + 1)
+    # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
+    if i == j:
+        return j_squared_num(j_qn) + s_squared_num(s_qn) - 2 * omega_qn_j * sigma_qn_j
 
     # ⟨J, S, Ω - 1, Σ - 1|-(J+S-)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    term_minus: NDArray[np.float64] = -j_plus_num(j_qn, omega_j) * s_minus_num(s_qn, sigma_j)
+    if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
+        return -j_plus_num(j_qn, omega_qn_j) * s_minus_num(s_qn, sigma_qn_j)
+
     # ⟨J, S, Ω + 1, Σ + 1|-(J-S+)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    term_plus: NDArray[np.float64] = -j_minus_num(j_qn, omega_j) * s_plus_num(s_qn, sigma_j)
+    if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
+        return -j_minus_num(j_qn, omega_qn_j) * s_plus_num(s_qn, sigma_qn_j)
 
-    result[mask_minus] = term_minus[mask_minus]
-    result[mask_plus] = term_plus[mask_plus]
-
-    return result
+    return 0.0
 
 
 def n_squared_sym(

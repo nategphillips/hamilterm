@@ -84,18 +84,18 @@ def construct_n_operator_matrices_orig(
 
 
 def construct_n_operator_matrices_num(
-    sigma_basis: NDArray[np.float64],
-    omega_basis: NDArray[np.float64],
+    basis_fns: list[tuple[int, float, float]],
     s_qn: float,
     j_qn: float,
     max_n_index: int,
 ) -> list[NDArray[np.float64]]:
-    # TODO: 25/08/08 - This seems to be slower than the original approach for some reason.
-    dim: int = sigma_basis.size
+    dim: int = len(basis_fns)
 
     n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
 
-    n_op_mats[0] = mel.n_squared_num(sigma_basis, omega_basis, s_qn, j_qn)
+    for i in range(dim):
+        for j in range(dim):
+            n_op_mats[0][i, j] = mel.n_squared_num(i, j, basis_fns, s_qn, j_qn)
 
     for i in range(1, max_n_index):
         n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
