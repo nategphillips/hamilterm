@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import overload
+
 import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
@@ -40,7 +42,15 @@ def j_squared_sym(j_qn: Symbol) -> Expr:
     return j_qn * (j_qn + 1)
 
 
-def j_plus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+@overload
+def j_plus_num(j_qn: float, omega_qn_j: float) -> float: ...
+
+
+@overload
+def j_plus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
+
+
+def j_plus_num(j_qn: float, omega_qn_j: float | NDArray[np.float64]) -> float | NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
 
     Args:
@@ -57,7 +67,17 @@ def j_plus_sym(j_qn: Symbol, omega_qn_j: Rational) -> Expr:
     return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-def j_minus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+@overload
+def j_minus_num(j_qn: float, omega_qn_j: float) -> float: ...
+
+
+@overload
+def j_minus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
+
+
+def j_minus_num(
+    j_qn: float, omega_qn_j: float | NDArray[np.float64]
+) -> float | NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
 
     Args:
@@ -90,7 +110,15 @@ def s_squared_sym(s_qn: Rational) -> Expr:
     return s_qn * (s_qn + 1)
 
 
-def s_plus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+@overload
+def s_plus_num(s_qn: float, sigma_qn_j: float) -> float: ...
+
+
+@overload
+def s_plus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
+
+
+def s_plus_num(s_qn: float, sigma_qn_j: float | NDArray[np.float64]) -> float | NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
 
     Args:
@@ -107,7 +135,17 @@ def s_plus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
     return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
-def s_minus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
+@overload
+def s_minus_num(s_qn: float, sigma_qn_j: float) -> float: ...
+
+
+@overload
+def s_minus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
+
+
+def s_minus_num(
+    s_qn: float, sigma_qn_j: float | NDArray[np.float64]
+) -> float | NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
 
     Args:
