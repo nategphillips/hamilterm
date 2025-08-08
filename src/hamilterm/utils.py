@@ -16,14 +16,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import cast
+
 import numpy as np
+import sympy as sp
 from numpy.typing import NDArray
+from sympy import Integer, MutableDenseMatrix, Rational, Symbol
 
 from hamilterm import elements as mel
 from hamilterm import options
 
 
-def construct_n_operator_matrices(
+def safe_rational(num: int, denom: int) -> Rational:
+    """Ensure a rational return value.
+
+    Args:
+        num (int): Numerator
+        denom (int): Denominator
+
+    Raises:
+        ValueError: If NaN or Infinity is encountered
+
+    Returns:
+        sp.Rational: A guaranteed sp.Rational type
+    """
+    r = Rational(num, denom)
+
+    if not isinstance(r, Rational):
+        raise ValueError(f"Expected sp.Rational, got {r}.")
+
+    return r
+
+
+def construct_n_operator_matrices_orig(
     basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float, max_n_index: int
 ) -> list[NDArray[np.float64]]:
     """Construct the N operator matrices, where N is the total angular momentum w/o any spin.
@@ -49,7 +74,7 @@ def construct_n_operator_matrices(
     # Form the N^2 matrix using the matrix elements above.
     for i in range(dim):
         for j in range(dim):
-            n_op_mats[0][i, j] = mel.n_squared(i, j, basis_fns, s_qn, j_qn)
+            n_op_mats[0][i, j] = mel.n_squared_orig(i, j, basis_fns, s_qn, j_qn)
 
     # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
     for i in range(1, max_n_index):
@@ -58,7 +83,47 @@ def construct_n_operator_matrices(
     return n_op_mats
 
 
-def parse_term_symbol(term_symbol: str) -> tuple[float, int]:
+def construct_n_operator_matrices_num(
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
+    s_qn: float,
+    j_qn: float,
+    max_n_index: int,
+) -> list[NDArray[np.float64]]:
+    # TODO: 25/08/08 - This seems to be slower than the original approach for some reason.
+    dim: int = sigma_basis.size
+
+    n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
+
+    n_op_mats[0] = mel.n_squared_num(sigma_basis, omega_basis, s_qn, j_qn)
+
+    for i in range(1, max_n_index):
+        n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
+
+    return n_op_mats
+
+
+def construct_n_operator_matrices_sym(
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+    max_n_index: int,
+) -> list[MutableDenseMatrix]:
+    dim: int = len(basis_fns)
+
+    n_op_mats: list[MutableDenseMatrix] = [sp.zeros(dim) for _ in range(6)]
+
+    for i in range(dim):
+        for j in range(dim):
+            n_op_mats[0][i, j] = mel.n_squared_sym(i, j, basis_fns, s_qn, j_qn)
+
+    for i in range(1, max_n_index):
+        n_op_mats[i] = n_op_mats[i - 1] @ n_op_mats[0]
+
+    return n_op_mats
+
+
+def parse_term_symbol_orig(term_symbol: str) -> tuple[float, int]:
     """Parse the molecular term symbol into the quantum numbers S and Λ.
 
     Args:
@@ -75,7 +140,25 @@ def parse_term_symbol(term_symbol: str) -> tuple[float, int]:
     return s_qn, lambda_qn
 
 
-def generate_basis_fns(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
+def parse_term_symbol_num(term_symbol: str) -> tuple[float, int]:
+    spin_multiplicity: int = int(term_symbol[0])
+    s_qn: float = 0.5 * (spin_multiplicity - 1)
+    term: str = term_symbol[1:]
+    lambda_qn: int = options.LAMBDA_INT_MAP[term]
+
+    return s_qn, lambda_qn
+
+
+def parse_term_symbol_sym(term_symbol: str) -> tuple[Rational, Integer]:
+    spin_multiplicity: int = int(term_symbol[0])
+    s_qn: Rational = safe_rational(spin_multiplicity - 1, 2)
+    term: str = term_symbol[1:]
+    lambda_qn: Integer = Integer(options.LAMBDA_INT_MAP[term])
+
+    return s_qn, lambda_qn
+
+
+def generate_basis_fns_orig(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
     """Construct the Hund's case (a) basis set |Λ, Σ; Ω>.
 
     Args:
@@ -100,7 +183,37 @@ def generate_basis_fns(s_qn: float, lambda_qn: int) -> list[tuple[int, float, fl
     return basis_fns
 
 
-def basis_vectors(
+def generate_basis_fns_num(s_qn: float, lambda_qn: int) -> list[tuple[int, float, float]]:
+    sigmas: list[float] = [-s_qn + i for i in range(int(2 * s_qn) + 1)]
+
+    lambdas: list[int] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
+    basis_fns: list[tuple[int, float, float]] = []
+
+    for lam in lambdas:
+        for sigma in sigmas:
+            omega: float = lam + sigma
+            basis_fns.append((lam, sigma, omega))
+
+    return basis_fns
+
+
+def generate_basis_fns_sym(
+    s_qn: Rational, lambda_qn: Integer
+) -> list[tuple[Integer, Rational, Rational]]:
+    sigmas: list[Rational] = [cast("Rational", -s_qn + i) for i in range(int(2 * s_qn) + 1)]
+
+    lambdas: list[Integer] = [lambda_qn] if lambda_qn == 0 else [-lambda_qn, lambda_qn]
+    basis_fns: list[tuple[Integer, Rational, Rational]] = []
+
+    for lam in lambdas:
+        for sigma in sigmas:
+            omega: Rational = cast("Rational", lam + sigma)
+            basis_fns.append((lam, sigma, omega))
+
+    return basis_fns
+
+
+def basis_vectors_num(
     basis_fns: list[tuple[int, float, float]],
 ) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64]]:
     """Construct basis arrays of Λ, Σ, and Ω for use with vectorized functions.
@@ -119,13 +232,13 @@ def basis_vectors(
 
     for i, (lam, sig, omg) in enumerate(basis_fns):
         lambda_basis[i] = lam
-        sigma_basis[i] = float(sig)
-        omega_basis[i] = float(omg)
+        sigma_basis[i] = sig
+        omega_basis[i] = omg
 
     return lambda_basis, sigma_basis, omega_basis
 
 
-def form_basis_matrices(basis_vector: NDArray) -> tuple[NDArray, NDArray]:
+def form_basis_matrices_num(basis_vector: NDArray) -> tuple[NDArray, NDArray]:
     """Constructs basis matrices for i and j given a basis vector.
 
     A basis vector will look something like `[-1, 0, 1]`. To create masks and perform element-wise

@@ -61,11 +61,11 @@ class NumericComputation:
         Returns:
             NDArray[np.float64]: Hamiltonian matrix
         """
-        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
+        s_qn, lambda_qn = utils.parse_term_symbol_orig(self.term_symbol)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_orig(s_qn, lambda_qn)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(
+        n_op_mats = utils.construct_n_operator_matrices_orig(
             basis_fns, s_qn, self.j_qn, self.max_n_index
         )
 
@@ -85,9 +85,9 @@ class NumericComputation:
         for i in range(dim):
             for j in range(dim):
                 h_mat[i, j] = (
-                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
+                    switch_r * terms.rotational_orig(i, j, n_op_mats, self.consts.rotational)
                     + switch_so
-                    * terms.spin_orbit(
+                    * terms.spin_orbit_orig(
                         i,
                         j,
                         basis_fns,
@@ -97,7 +97,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_ss
-                    * terms.spin_spin(
+                    * terms.spin_spin_orig(
                         i,
                         j,
                         basis_fns,
@@ -107,7 +107,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_sr
-                    * terms.spin_rotation(
+                    * terms.spin_rotation_orig(
                         i,
                         j,
                         basis_fns,
@@ -118,7 +118,7 @@ class NumericComputation:
                         self.max_acomm_index,
                     )
                     + switch_ld
-                    * terms.lambda_doubling(
+                    * terms.lambda_doubling_orig(
                         i,
                         j,
                         basis_fns,
@@ -134,48 +134,48 @@ class NumericComputation:
 
     @cached_property
     def hamiltonian_vec(self) -> NDArray[np.float64]:
-        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns(s_qn, lambda_qn)
-        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors(basis_fns)
+        s_qn, lambda_qn = utils.parse_term_symbol_num(self.term_symbol)
+        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_num(s_qn, lambda_qn)
+        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns)
 
         dim: int = len(basis_fns)
-        n_op_mats = utils.construct_n_operator_matrices(
-            basis_fns, s_qn, self.j_qn, self.max_n_index
+        n_op_mats = utils.construct_n_operator_matrices_num(
+            sigma_basis, omega_basis, s_qn, self.j_qn, self.max_n_index
         )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
         if options.INCLUDE_R:
-            h_mat += terms.rotational_vec(n_op_mats, self.consts.rotational)
+            h_mat += terms.rotational_num(n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
-            h_mat += terms.spin_orbit_vec(
+            h_mat += terms.spin_orbit_num(
                 lambda_basis,
                 sigma_basis,
-                float(s_qn),
+                s_qn,
                 n_op_mats,
                 self.consts.spin_orbit,
                 self.max_acomm_index,
             )
         if options.INCLUDE_SS:
-            h_mat += terms.spin_spin_vec(
-                sigma_basis, float(s_qn), n_op_mats, self.consts.spin_spin, self.max_acomm_index
+            h_mat += terms.spin_spin_num(
+                sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
             )
         if options.INCLUDE_SR:
-            h_mat += terms.spin_rotation_vec(
+            h_mat += terms.spin_rotation_num(
                 sigma_basis,
                 omega_basis,
-                float(s_qn),
+                s_qn,
                 self.j_qn,
                 n_op_mats,
                 self.consts.spin_rotation,
                 self.max_acomm_index,
             )
         if options.INCLUDE_LD:
-            h_mat += terms.lambda_doubling_vec(
+            h_mat += terms.lambda_doubling_num(
                 lambda_basis,
                 sigma_basis,
                 omega_basis,
-                float(s_qn),
+                s_qn,
                 self.j_qn,
                 n_op_mats,
                 self.consts.lambda_doubling,

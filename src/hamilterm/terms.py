@@ -18,12 +18,13 @@
 
 import numpy as np
 from numpy.typing import NDArray
+from sympy import Expr, Integer, MutableDenseMatrix, Rational, Symbol
 
 from hamilterm import constants, utils
 from hamilterm import elements as mel
 
 
-def rotational(
+def rotational_orig(
     i: int,
     j: int,
     n_op_mats: list[NDArray[np.float64]],
@@ -53,7 +54,7 @@ def rotational(
     )
 
 
-def rotational_vec(
+def rotational_num(
     n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConstsNum
 ) -> NDArray[np.float64]:
     return (
@@ -66,7 +67,23 @@ def rotational_vec(
     )
 
 
-def spin_orbit(
+def rotational_sym(
+    i: int,
+    j: int,
+    n_op_mats: list[MutableDenseMatrix],
+    r_consts: constants.RotationalConstsSym,
+) -> Expr:
+    return (
+        r_consts.B * n_op_mats[0][i, j]
+        - r_consts.D * n_op_mats[1][i, j]
+        + r_consts.H * n_op_mats[2][i, j]
+        + r_consts.L * n_op_mats[3][i, j]
+        + r_consts.M * n_op_mats[4][i, j]
+        + r_consts.P * n_op_mats[5][i, j]
+    )
+
+
+def spin_orbit_orig(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
@@ -100,7 +117,7 @@ def spin_orbit(
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0.
     if abs(lambda_qn_j) > 0 and s_qn > 0:
         # A(LzSz)
-        result += so_consts.A * mel.lz_sz(i, j, basis_fns)
+        result += so_consts.A * mel.lz_sz_orig(i, j, basis_fns)
 
         spin_orbit_cd_consts: list[float] = [
             so_consts.A_D,
@@ -119,8 +136,8 @@ def spin_orbit(
                     0.5
                     * const
                     * (
-                        n_op_mats[idx][i, k] * mel.lz_sz(k, j, basis_fns)
-                        + mel.lz_sz(i, k, basis_fns) * n_op_mats[idx][k, j]
+                        n_op_mats[idx][i, k] * mel.lz_sz_orig(k, j, basis_fns)
+                        + mel.lz_sz_orig(i, k, basis_fns) * n_op_mats[idx][k, j]
                     )
                 )
 
@@ -129,14 +146,14 @@ def spin_orbit(
             # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
             result += (
                 so_consts.eta
-                * mel.lz_sz(i, j, basis_fns)
-                * (sigma_qn_j**2 - 0.2 * (3 * mel.s_squared(s_qn) - 1))
+                * mel.lz_sz_orig(i, j, basis_fns)
+                * (sigma_qn_j**2 - 0.2 * (3 * mel.s_squared_orig(s_qn) - 1))
             )
 
     return result
 
 
-def spin_orbit_vec(
+def spin_orbit_num(
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
     s_qn: float,
@@ -154,7 +171,7 @@ def spin_orbit_vec(
         return result
 
     # A(LzSz)
-    lz_sz: NDArray[np.float64] = mel.lz_sz_vec(lambda_basis, sigma_basis)
+    lz_sz: NDArray[np.float64] = mel.lz_sz_num(lambda_basis, sigma_basis)
     result += so_consts.A * lz_sz
 
     spin_orbit_cd_consts: NDArray[np.float64] = np.array(
@@ -181,12 +198,64 @@ def spin_orbit_vec(
     # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
     if s_qn > 1.0:
         # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
-        result += so_consts.eta * lz_sz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared_vec(s_qn) - 1))
+        result += so_consts.eta * lz_sz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared_num(s_qn) - 1))
 
     return result
 
 
-def spin_spin(
+def spin_orbit_sym(
+    i: int,
+    j: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    n_op_mats: list[MutableDenseMatrix],
+    so_consts: constants.SpinOrbitConstsSym,
+    max_acomm_index: int,
+) -> Expr:
+    lambda_qn_j, sigma_qn_j, _ = basis_fns[j]
+
+    result: Expr = Integer(0)
+
+    # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0.
+    if abs(lambda_qn_j) > 0 and s_qn > 0:
+        # A(LzSz)
+        result += so_consts.A * mel.lz_sz_sym(i, j, basis_fns)
+
+        spin_orbit_cd_consts: list[Symbol] = [
+            so_consts.A_D,
+            so_consts.A_H,
+            so_consts.A_L,
+            so_consts.A_M,
+        ]
+
+        # A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
+        for k in range(len(basis_fns)):
+            # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
+            #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
+            #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
+            for idx, const in enumerate(spin_orbit_cd_consts[:max_acomm_index]):
+                result += (
+                    Rational(1, 2)
+                    * const
+                    * (
+                        n_op_mats[idx][i, k] * mel.lz_sz_sym(k, j, basis_fns)
+                        + mel.lz_sz_sym(i, k, basis_fns) * n_op_mats[idx][k, j]
+                    )
+                )
+
+        # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
+        if s_qn > 1:
+            # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
+            result += (
+                so_consts.eta
+                * mel.lz_sz_sym(i, j, basis_fns)
+                * (sigma_qn_j**2 - Rational(1, 5) * (3 * mel.s_squared_sym(s_qn) - 1))
+            )
+
+    return result
+
+
+def spin_spin_orig(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
@@ -220,7 +289,7 @@ def spin_spin(
     # Spin-spin coupling is only defined for states with S > 1/2.
     if s_qn > 0.5:
         # 2λ/3(3Sz^2 - S^2)
-        result += (2 / 3) * ss_consts.lamda * mel.three_sz2_minus_s2(i, j, basis_fns, s_qn)
+        result += (2 / 3) * ss_consts.lamda * mel.three_sz2_minus_s2_orig(i, j, basis_fns, s_qn)
 
         spin_spin_cd_consts: list[float] = [ss_consts.lamda_D, ss_consts.lamda_H]
 
@@ -235,8 +304,8 @@ def spin_spin(
                     (1 / 3)
                     * const
                     * (
-                        mel.three_sz2_minus_s2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.three_sz2_minus_s2(k, j, basis_fns, s_qn)
+                        mel.three_sz2_minus_s2_orig(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.three_sz2_minus_s2_orig(k, j, basis_fns, s_qn)
                     )
                 )
 
@@ -249,17 +318,17 @@ def spin_spin(
                 * ss_consts.theta
                 * (
                     35 * sigma_qn_j**4
-                    - 30 * mel.s_squared(s_qn) * sigma_qn_j**2
+                    - 30 * mel.s_squared_orig(s_qn) * sigma_qn_j**2
                     + 25 * sigma_qn_j**2
-                    - 6 * mel.s_squared(s_qn)
-                    + 3 * mel.s_squared(s_qn) ** 2
+                    - 6 * mel.s_squared_orig(s_qn)
+                    + 3 * mel.s_squared_orig(s_qn) ** 2
                 )
             )
 
     return result
 
 
-def spin_spin_vec(
+def spin_spin_num(
     sigma_basis: NDArray[np.float64],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
@@ -275,7 +344,7 @@ def spin_spin_vec(
         return result
 
     # 2λ/3(3Sz^2 - S^2)
-    three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_vec(sigma_basis, s_qn)
+    three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_num(sigma_basis, s_qn)
     result += (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
 
     spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lamda_D, ss_consts.lamda_H])[
@@ -305,17 +374,64 @@ def spin_spin_vec(
             (ss_consts.theta / 12.0)
             * (
                 35.0 * sigma_basis**4
-                - 30.0 * mel.s_squared_vec(s_qn) * sigma_basis**2
+                - 30.0 * mel.s_squared_num(s_qn) * sigma_basis**2
                 + 25.0 * sigma_basis**2
-                - 6.0 * mel.s_squared_vec(s_qn)
-                + 3.0 * mel.s_squared_vec(s_qn) ** 2
+                - 6.0 * mel.s_squared_num(s_qn)
+                + 3.0 * mel.s_squared_num(s_qn) ** 2
             )
         )
 
     return result
 
 
-def spin_rotation(
+def spin_spin_sym(
+    i: int,
+    j: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    n_op_mats: list[MutableDenseMatrix],
+    ss_consts: constants.SpinSpinConstsSym,
+    max_acomm_index: int,
+) -> Expr:
+    sigma_qn_j: Rational = basis_fns[j][1]
+
+    result: Expr = Integer(0)
+
+    if s_qn > Rational(1, 2):
+        result += (
+            Rational(2, 3) * ss_consts.lamda * mel.three_sz2_minus_s2_sym(i, j, basis_fns, s_qn)
+        )
+
+        spin_spin_cd_consts: list[Symbol] = [ss_consts.lamda_D, ss_consts.lamda_H]
+
+        for k in range(len(basis_fns)):
+            for idx, const in enumerate(spin_spin_cd_consts[:max_acomm_index]):
+                result += (
+                    Rational(1, 3)
+                    * const
+                    * (
+                        mel.three_sz2_minus_s2_sym(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.three_sz2_minus_s2_sym(k, j, basis_fns, s_qn)
+                    )
+                )
+
+        if i == j and s_qn > Rational(3, 2):
+            result += (
+                Rational(1, 12)
+                * ss_consts.theta
+                * (
+                    35 * sigma_qn_j**4
+                    - 30 * mel.s_squared_sym(s_qn) * sigma_qn_j**2
+                    + 25 * sigma_qn_j**2
+                    - 6 * mel.s_squared_sym(s_qn)
+                    + 3 * mel.s_squared_sym(s_qn) ** 2
+                )
+            )
+
+    return result
+
+
+def spin_rotation_orig(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
@@ -352,7 +468,7 @@ def spin_rotation(
     # Spin-rotation coupling is only defined for states with S > 0.
     if s_qn > 0:
         # γ(N·S)
-        result += sr_consts.gamma * mel.n_dot_s(i, j, basis_fns, s_qn, j_qn)
+        result += sr_consts.gamma * mel.n_dot_s_orig(i, j, basis_fns, s_qn, j_qn)
 
         spin_rotation_cd_consts: list[float] = [
             sr_consts.gamma_D,
@@ -370,8 +486,8 @@ def spin_rotation(
                     0.5
                     * const
                     * (
-                        mel.n_dot_s(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.n_dot_s(k, j, basis_fns, s_qn, j_qn)
+                        mel.n_dot_s_orig(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.n_dot_s_orig(k, j, basis_fns, s_qn, j_qn)
                     )
                 )
 
@@ -383,9 +499,9 @@ def spin_rotation(
                 result += (
                     -0.5
                     * sr_consts.gamma_S
-                    * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
-                    * mel.j_minus(j_qn, omega_qn_j)
-                    * mel.s_plus(s_qn, sigma_qn_j)
+                    * (mel.s_squared_orig(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
+                    * mel.j_minus_orig(j_qn, omega_qn_j)
+                    * mel.s_plus_orig(s_qn, sigma_qn_j)
                 )
 
             # ⟨J, S, Ω - 1, Σ - 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
@@ -394,15 +510,15 @@ def spin_rotation(
                 result += (
                     -0.5
                     * sr_consts.gamma_S
-                    * (mel.s_squared(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
-                    * mel.j_plus(j_qn, omega_qn_j)
-                    * mel.s_minus(s_qn, sigma_qn_j)
+                    * (mel.s_squared_orig(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
+                    * mel.j_plus_orig(j_qn, omega_qn_j)
+                    * mel.s_minus_orig(s_qn, sigma_qn_j)
                 )
 
     return result
 
 
-def spin_rotation_vec(
+def spin_rotation_num(
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
@@ -420,7 +536,7 @@ def spin_rotation_vec(
         return result
 
     # γ(N·S)
-    n_dot_s: NDArray[np.float64] = mel.n_dot_s_vec(sigma_basis, omega_basis, s_qn, j_qn)
+    n_dot_s: NDArray[np.float64] = mel.n_dot_s_num(sigma_basis, omega_basis, s_qn, j_qn)
     result += sr_consts.gamma * n_dot_s
 
     spin_rotation_cd_consts: NDArray[np.float64] = np.array(
@@ -443,8 +559,8 @@ def spin_rotation_vec(
     if s_qn > 1.0:
         # TODO: 25/07/16 - Think about moving this to a separate function in elements.py.
 
-        sigma_i, sigma_j = utils.form_basis_matrices(sigma_basis)
-        omega_i, omega_j = utils.form_basis_matrices(omega_basis)
+        sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
+        omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
 
         # Create masks to denote where the off-diagonal array elements are
         # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
@@ -457,18 +573,18 @@ def spin_rotation_vec(
         term_minus: NDArray[np.float64] = (
             -0.5
             * sr_consts.gamma_S
-            * (mel.s_squared_vec(s_qn) - 5 * sigma_j * (sigma_j - 1) - 2)
-            * mel.j_plus_vec(j_qn, omega_j)
-            * mel.s_minus_vec(s_qn, sigma_j)
+            * (mel.s_squared_num(s_qn) - 5 * sigma_j * (sigma_j - 1) - 2)
+            * mel.j_plus_num(j_qn, omega_j)
+            * mel.s_minus_num(s_qn, sigma_j)
         )
         # ⟨J, S, Ω + 1, Σ + 1|-(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}|J, S, Ω, Σ⟩
         #   = -γ_S/2[S(S + 1) - 5Σ(Σ + 1) + 2]([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
         term_plus: NDArray[np.float64] = (
             -0.5
             * sr_consts.gamma_S
-            * (mel.s_squared_vec(s_qn) - 5 * sigma_j * (sigma_j + 1) - 2)
-            * mel.j_minus_vec(j_qn, omega_j)
-            * mel.s_plus_vec(s_qn, sigma_j)
+            * (mel.s_squared_num(s_qn) - 5 * sigma_j * (sigma_j + 1) - 2)
+            * mel.j_minus_num(j_qn, omega_j)
+            * mel.s_plus_num(s_qn, sigma_j)
         )
 
         result[mask_minus] += term_minus[mask_minus]
@@ -477,7 +593,64 @@ def spin_rotation_vec(
     return result
 
 
-def lambda_doubling(
+def spin_rotation_sym(
+    i: int,
+    j: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+    n_op_mats: list[MutableDenseMatrix],
+    sr_consts: constants.SpinRotationConstsSym,
+    max_acomm_index: int,
+) -> Expr:
+    _, sigma_qn_i, omega_qn_i = basis_fns[i]
+    _, sigma_qn_j, omega_qn_j = basis_fns[j]
+
+    result: Expr = Integer(0)
+
+    if s_qn > 0:
+        result += sr_consts.gamma * mel.n_dot_s_sym(i, j, basis_fns, s_qn, j_qn)
+
+        spin_rotation_cd_consts: list[Symbol] = [
+            sr_consts.gamma_D,
+            sr_consts.gamma_H,
+            sr_consts.gamma_L,
+        ]
+
+        for k in range(len(basis_fns)):
+            for idx, const in enumerate(spin_rotation_cd_consts[:max_acomm_index]):
+                result += (
+                    Rational(1, 2)
+                    * const
+                    * (
+                        mel.n_dot_s_sym(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.n_dot_s_sym(k, j, basis_fns, s_qn, j_qn)
+                    )
+                )
+
+        if s_qn > 1:
+            if sigma_qn_i == sigma_qn_j + 1 and omega_qn_i == omega_qn_j + 1:
+                result += (
+                    -Rational(1, 2)
+                    * sr_consts.gamma_S
+                    * (mel.s_squared_sym(s_qn) - 5 * sigma_qn_j * (sigma_qn_j + 1) - 2)
+                    * mel.j_minus_sym(j_qn, omega_qn_j)
+                    * mel.s_plus_sym(s_qn, sigma_qn_j)
+                )
+
+            if sigma_qn_i == sigma_qn_j - 1 and omega_qn_i == omega_qn_j - 1:
+                result += (
+                    -Rational(1, 2)
+                    * sr_consts.gamma_S
+                    * (mel.s_squared_sym(s_qn) - 5 * sigma_qn_j * (sigma_qn_j - 1) - 2)
+                    * mel.j_plus_sym(j_qn, omega_qn_j)
+                    * mel.s_minus_sym(s_qn, sigma_qn_j)
+                )
+
+    return result
+
+
+def lambda_doubling_orig(
     i: int,
     j: int,
     basis_fns: list[tuple[int, float, float]],
@@ -521,16 +694,18 @@ def lambda_doubling(
         result += (
             0.5
             * (ld_consts.o + ld_consts.p + ld_consts.q)
-            * mel.sp2_plus_sm2(i, j, basis_fns, s_qn)
+            * mel.sp2_plus_sm2_orig(i, j, basis_fns, s_qn)
         )
 
         # -0.5(p + 2q)(J+S+ + J-S-)
         result += (
-            -0.5 * (ld_consts.p + 2 * ld_consts.q) * mel.jpsp_plus_jmsm(i, j, basis_fns, s_qn, j_qn)
+            -0.5
+            * (ld_consts.p + 2 * ld_consts.q)
+            * mel.jpsp_plus_jmsm_orig(i, j, basis_fns, s_qn, j_qn)
         )
 
         # q/2(J+^2 + J-^2)
-        result += 0.5 * ld_consts.q * mel.jp2_plus_jm2(i, j, basis_fns, j_qn)
+        result += 0.5 * ld_consts.q * mel.jp2_plus_jm2_orig(i, j, basis_fns, j_qn)
 
         lambda_doubling_cd_consts_opq: list[float] = [
             ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
@@ -563,8 +738,8 @@ def lambda_doubling(
                     0.25
                     * const
                     * (
-                        mel.sp2_plus_sm2(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.sp2_plus_sm2(k, j, basis_fns, s_qn)
+                        mel.sp2_plus_sm2_orig(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.sp2_plus_sm2_orig(k, j, basis_fns, s_qn)
                     )
                 )
 
@@ -577,8 +752,9 @@ def lambda_doubling(
                     -0.25
                     * const
                     * (
-                        mel.jpsp_plus_jmsm(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.jpsp_plus_jmsm(k, j, basis_fns, s_qn, j_qn)
+                        mel.jpsp_plus_jmsm_orig(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k]
+                        * mel.jpsp_plus_jmsm_orig(k, j, basis_fns, s_qn, j_qn)
                     )
                 )
 
@@ -591,15 +767,15 @@ def lambda_doubling(
                     0.25
                     * const
                     * (
-                        mel.jp2_plus_jm2(i, k, basis_fns, j_qn) * n_op_mats[idx][k, j]
-                        + n_op_mats[idx][i, k] * mel.jp2_plus_jm2(k, j, basis_fns, j_qn)
+                        mel.jp2_plus_jm2_orig(i, k, basis_fns, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.jp2_plus_jm2_orig(k, j, basis_fns, j_qn)
                     )
                 )
 
     return result
 
 
-def lambda_doubling_vec(
+def lambda_doubling_num(
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
@@ -618,17 +794,17 @@ def lambda_doubling_vec(
         return result
 
     # 0.5(o + p + q)(S+^2 + S-^2)
-    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_vec(lambda_basis, sigma_basis, s_qn)
+    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_num(lambda_basis, sigma_basis, s_qn)
     result += 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * sp2_plus_sm2
 
     # -0.5(p + 2q)(J+S+ + J-S-)
-    jpsp_plus_jmsm: NDArray[np.float64] = mel.jpsp_plus_jmsm_vec(
+    jpsp_plus_jmsm: NDArray[np.float64] = mel.jpsp_plus_jmsm_num(
         lambda_basis, sigma_basis, omega_basis, s_qn, j_qn
     )
     result += -0.5 * (ld_consts.p + 2 * ld_consts.q) * jpsp_plus_jmsm
 
     # q/2(J+^2 + J-^2)
-    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_vec(lambda_basis, omega_basis, j_qn)
+    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_num(lambda_basis, omega_basis, j_qn)
     result += 0.5 * ld_consts.q * jp2_plus_jm2
 
     lambda_doubling_cd_consts_opq: NDArray[np.float64] = np.array(
@@ -688,5 +864,87 @@ def lambda_doubling_vec(
             #   = 0.25 * q_x(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+^2 + J-^2|j⟩)
             #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
             result += 0.25 * const * (jp2_plus_jm2 @ n_op_mats[idx] + n_op_mats[idx] @ jp2_plus_jm2)
+
+    return result
+
+
+def lambda_doubling_sym(
+    i: int,
+    j: int,
+    basis_fns: list[tuple[Integer, Rational, Rational]],
+    s_qn: Rational,
+    j_qn: Symbol,
+    n_op_mats: list[MutableDenseMatrix],
+    ld_consts: constants.LambdaDoublingConstsSym,
+    max_acomm_index: int,
+) -> Expr:
+    lambda_qn_i = basis_fns[i][0]
+    lambda_qn_j = basis_fns[j][0]
+
+    result: Expr = Integer(0)
+
+    if abs(lambda_qn_i - lambda_qn_j) == 2:
+        result += (
+            Rational(1, 2)
+            * (ld_consts.o + ld_consts.p + ld_consts.q)
+            * mel.sp2_plus_sm2_sym(i, j, basis_fns, s_qn)
+        )
+
+        result += (
+            -Rational(1, 2)
+            * (ld_consts.p + 2 * ld_consts.q)
+            * mel.jpsp_plus_jmsm_sym(i, j, basis_fns, s_qn, j_qn)
+        )
+
+        result += Rational(1, 2) * ld_consts.q * mel.jp2_plus_jm2_sym(i, j, basis_fns, j_qn)
+
+        lambda_doubling_cd_consts_opq: list[Expr] = [
+            ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
+            ld_consts.o_H + ld_consts.p_H + ld_consts.q_H,
+            ld_consts.o_L + ld_consts.p_L + ld_consts.q_L,
+        ]
+
+        lambda_doubling_cd_consts_pq: list[Expr] = [
+            ld_consts.p_D + 2 * ld_consts.q_D,
+            ld_consts.p_H + 2 * ld_consts.q_H,
+            ld_consts.p_L + 2 * ld_consts.q_L,
+        ]
+
+        lambda_doubling_cd_consts_q: list[Symbol] = [
+            ld_consts.q_D,
+            ld_consts.q_H,
+            ld_consts.q_L,
+        ]
+
+        for k in range(len(basis_fns)):
+            for idx, const in enumerate(lambda_doubling_cd_consts_opq[:max_acomm_index]):
+                result += (
+                    Rational(1, 4)
+                    * const
+                    * (
+                        mel.sp2_plus_sm2_sym(i, k, basis_fns, s_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.sp2_plus_sm2_sym(k, j, basis_fns, s_qn)
+                    )
+                )
+
+            for idx, const in enumerate(lambda_doubling_cd_consts_pq[:max_acomm_index]):
+                result += (
+                    -Rational(1, 4)
+                    * const
+                    * (
+                        mel.jpsp_plus_jmsm_sym(i, k, basis_fns, s_qn, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.jpsp_plus_jmsm_sym(k, j, basis_fns, s_qn, j_qn)
+                    )
+                )
+
+            for idx, const in enumerate(lambda_doubling_cd_consts_q[:max_acomm_index]):
+                result += (
+                    Rational(1, 4)
+                    * const
+                    * (
+                        mel.jp2_plus_jm2_sym(i, k, basis_fns, j_qn) * n_op_mats[idx][k, j]
+                        + n_op_mats[idx][i, k] * mel.jp2_plus_jm2_sym(k, j, basis_fns, j_qn)
+                    )
+                )
 
     return result
