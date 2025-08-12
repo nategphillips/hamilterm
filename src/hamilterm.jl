@@ -8,8 +8,7 @@ include("options.jl")
 include("terms.jl")
 include("utils.jl")
 
-# TODO: 1) Pass around a single Hamiltonian matrix instead of creating new ones in each function
-#       2) Spin-orbit has 4 centrifugal distortion constants, while everything else has 3
+# TODO: 1) Spin-orbit has 4 centrifugal distortion constants, while everything else has 3
 
 mutable struct Computation
     term_symbol::String
@@ -46,19 +45,19 @@ function compute_hamiltonian!(comp::Computation)
     h_mat = zeros(Float64, dim, dim)
 
     if INCLUDE_RO
-        h_mat .+= rotational(n_op_mats, comp.consts.rotational)
+        rotational!(h_mat, n_op_mats, comp.consts.rotational)
     end
     if INCLUDE_SO
-        h_mat .+= spin_orbit(s_qn, lambda_vec, sigma_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.spin_orbit)
+        spin_orbit!(h_mat, s_qn, lambda_vec, sigma_vec, n_op_mats, comp.max_acomm_index, comp.consts.spin_orbit)
     end
     if INCLUDE_SS
-        h_mat .+= spin_spin(s_qn, sigma_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.spin_spin)
+        spin_spin!(h_mat, s_qn, sigma_vec, n_op_mats, comp.max_acomm_index, comp.consts.spin_spin)
     end
     if INCLUDE_SR
-        h_mat .+= spin_rotation(s_qn, comp.j_qn, sigma_vec, omega_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.spin_rotation)
+        spin_rotation!(h_mat, s_qn, comp.j_qn, sigma_vec, omega_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.spin_rotation)
     end
     if INCLUDE_LD
-        h_mat .+= lambda_doubling(s_qn, comp.j_qn, lambda_vec, sigma_vec, omega_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.lambda_doubling)
+        lambda_doubling!(h_mat, s_qn, comp.j_qn, lambda_vec, sigma_vec, omega_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.lambda_doubling)
     end
 
     comp.hamiltonian = Hermitian(h_mat)
