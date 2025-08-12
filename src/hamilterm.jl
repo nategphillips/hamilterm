@@ -23,7 +23,14 @@ mutable struct Computation
     Computation(term_symbol, consts, j_qn, max_n_index, max_acomm_index) = new(term_symbol, consts, j_qn, max_n_index, max_acomm_index)
 end
 
-function construct_n_operator_matrices(s_qn, j_qn, sigma_vec, omega_vec, max_n_index, dim)
+function construct_n_operator_matrices(
+    s_qn::Float64,
+    j_qn::Float64,
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    max_n_index::Int,
+    dim::Int,
+)
     n_op_mats = [zeros(Float64, dim, dim) for _ in 1:6]
 
     n_op_mats[begin] = n_squared(s_qn, j_qn, sigma_vec, omega_vec, dim)
@@ -32,7 +39,7 @@ function construct_n_operator_matrices(s_qn, j_qn, sigma_vec, omega_vec, max_n_i
         n_op_mats[i] = n_op_mats[i-1] * n_op_mats[begin]
     end
 
-    n_op_mats
+    return n_op_mats
 end
 
 function compute_hamiltonian!(comp::Computation)
@@ -61,17 +68,28 @@ function compute_hamiltonian!(comp::Computation)
     end
 
     comp.hamiltonian = Hermitian(h_mat)
+
+    return nothing
 end
 
 function compute_eigensystem!(comp::Computation)
     comp.eigenvalues, comp.eigenvectors = eigen(comp.hamiltonian)
+
+    return nothing
 end
 
-function initialize_computation(term_symbol::String, consts::AllConsts, j_qn::Float64, max_n_index::Int, max_acomm_index::Int)
+function initialize_computation(
+    term_symbol::String,
+    consts::AllConsts,
+    j_qn::Float64,
+    max_n_index::Int,
+    max_acomm_index::Int,
+)
     comp = Computation(term_symbol, consts, j_qn, max_n_index, max_acomm_index)
     compute_hamiltonian!(comp)
     compute_eigensystem!(comp)
-    comp
+
+    return comp
 end
 
 function two_pi(num::Int)
@@ -83,6 +101,8 @@ function two_pi(num::Int)
     for _ in 0:num
         comp = initialize_computation("2Pi", c, 1.0, 6, 3)
     end
+
+    return nothing
 end
 
 @time two_pi(500)

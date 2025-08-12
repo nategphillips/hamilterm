@@ -1,53 +1,57 @@
-function s_squared(s_qn::Float64)
-    s_qn * (s_qn + 1)
-end
+s_squared(s_qn::Float64) = s_qn * (s_qn + 1)
 
-function s_plus(s_qn::Float64, sigma::AbstractMatrix)
+function s_plus(s_qn::Float64, sigma::AbstractMatrix{Float64})
     term = s_qn * (s_qn + 1) .- sigma .* (sigma .+ 1)
     # Check for negative elements, not sure if this is the most idiomatic way of doing this
     if any(term .< 0.0)
         return zero(sigma)
     end
-    sqrt.(term)
+
+    return sqrt.(term)
 end
 
-function s_minus(s_qn::Float64, sigma::AbstractMatrix)
+function s_minus(s_qn::Float64, sigma::AbstractMatrix{Float64})
     term = s_qn * (s_qn + 1) .- sigma .* (sigma .- 1)
     if any(term .< 0.0)
         return zero(sigma)
     end
-    sqrt.(term)
+
+    return sqrt.(term)
 end
 
-function j_squared(j_qn::Float64)
-    j_qn * (j_qn + 1)
-end
+j_squared(j_qn::Float64) = j_qn * (j_qn + 1)
 
-function j_plus(j_qn::Float64, omega::AbstractMatrix)
+function j_plus(j_qn::Float64, omega::AbstractMatrix{Float64})
     term = j_qn * (j_qn + 1) .- omega .* (omega .- 1)
     if any(term .< 0.0)
         return zero(omega)
     end
-    sqrt.(term)
+
+    return sqrt.(term)
 end
 
-function j_minus(j_qn::Float64, omega::AbstractMatrix)
+function j_minus(j_qn::Float64, omega::AbstractMatrix{Float64})
     term = j_qn * (j_qn + 1) .- omega .* (omega .+ 1)
     if any(term .< 0.0)
         return zero(omega)
     end
-    sqrt.(term)
+
+    return sqrt.(term)
 end
 
-function lz_sz(lambda_vec::Array, sigma_vec::Array)
-    diagm(lambda_vec .* sigma_vec)
-end
+lz_sz(lambda_vec::Vector{Int}, sigma_vec::Vector{Float64}) = diagm(lambda_vec .* sigma_vec)
 
-function three_sz2_minus_s2(s_qn::Float64, sigma_vec::Array)
+function three_sz2_minus_s2(s_qn::Float64, sigma_vec::Vector{Float64})
     diagm(3 * sigma_vec .^ 2 .- s_squared(s_qn))
 end
 
-function n_squared(s_qn::Float64, j_qn::Float64, sigma_vec::Array, omega_vec::Array, dim::Int)
+function n_squared(
+    s_qn::Float64,
+    j_qn::Float64,
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    dim::Int,
+)
     sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
     omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
 
@@ -62,10 +66,16 @@ function n_squared(s_qn::Float64, j_qn::Float64, sigma_vec::Array, omega_vec::Ar
     result[mask_minus] .= term_minus[mask_minus]
     result[mask_plus] .= term_plus[mask_plus]
 
-    result
+    return result
 end
 
-function n_dot_s(s_qn::Float64, j_qn::Float64, sigma_vec::Array, omega_vec::Array, dim::Int)
+function n_dot_s(
+    s_qn::Float64,
+    j_qn::Float64,
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    dim::Int,
+)
     sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
     omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
 
@@ -80,10 +90,17 @@ function n_dot_s(s_qn::Float64, j_qn::Float64, sigma_vec::Array, omega_vec::Arra
     result[mask_minus] .= term_minus[mask_minus]
     result[mask_plus] .= term_plus[mask_plus]
 
-    result
+    return result
 end
 
-function jpsp_plus_jmsm(s_qn::Float64, j_qn::Float64, lambda_vec::Array, sigma_vec::Array, omega_vec::Array, dim::Int)
+function jpsp_plus_jmsm(
+    s_qn::Float64,
+    j_qn::Float64,
+    lambda_vec::Vector{Int},
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    dim::Int,
+)
     lambda_i, lambda_j = generate_basis_matrices(lambda_vec, dim)
     sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
     omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
@@ -103,10 +120,10 @@ function jpsp_plus_jmsm(s_qn::Float64, j_qn::Float64, lambda_vec::Array, sigma_v
     result[mask_plus] .= term_plus[mask_plus]
     result[mask_minus] .= term_minus[mask_minus]
 
-    result
+    return result
 end
 
-function sp2_plus_sm2(s_qn::Float64, lambda_vec::Array, sigma_vec::Array, dim::Int)
+function sp2_plus_sm2(s_qn::Float64, lambda_vec::Vector{Int}, sigma_vec::Vector{Float64}, dim::Int)
     lambda_i, lambda_j = generate_basis_matrices(lambda_vec, dim)
     sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
 
@@ -121,10 +138,10 @@ function sp2_plus_sm2(s_qn::Float64, lambda_vec::Array, sigma_vec::Array, dim::I
     result[mask_plus] .= term_plus[mask_plus]
     result[mask_minus] .= term_minus[mask_minus]
 
-    result
+    return result
 end
 
-function jp2_plus_jm2(j_qn::Float64, lambda_vec::Array, omega_vec::Array, dim::Int)
+function jp2_plus_jm2(j_qn::Float64, lambda_vec::Vector{Int}, omega_vec::Vector{Float64}, dim::Int)
     lambda_i, lambda_j = generate_basis_matrices(lambda_vec, dim)
     omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
 
@@ -139,5 +156,5 @@ function jp2_plus_jm2(j_qn::Float64, lambda_vec::Array, omega_vec::Array, dim::I
     result[mask_plus] .= term_plus[mask_plus]
     result[mask_minus] .= term_minus[mask_minus]
 
-    result
+    return result
 end

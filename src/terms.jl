@@ -1,4 +1,8 @@
-function rotational!(ham, n_op_mats, r_consts::RotationalConsts)
+function rotational!(
+    ham::Matrix{Float64},
+    n_op_mats::Vector{Matrix{Float64}},
+    r_consts::RotationalConsts,
+)
     ham .+= (
         r_consts.B .* n_op_mats[1]
         -
@@ -8,11 +12,21 @@ function rotational!(ham, n_op_mats, r_consts::RotationalConsts)
         + r_consts.M .* n_op_mats[5]
         + r_consts.P .* n_op_mats[6]
     )
+
+    return nothing
 end
 
-function spin_orbit!(ham, s_qn::Float64, lambda_vec::Array, sigma_vec::Array, n_op_mats, max_acomm_index::Int, so_consts::SpinOrbitConsts)
+function spin_orbit!(
+    ham::Matrix{Float64},
+    s_qn::Float64,
+    lambda_vec::Vector{Int},
+    sigma_vec::Vector{Float64},
+    n_op_mats,
+    max_acomm_index::Int,
+    so_consts::SpinOrbitConsts,
+)
     if maximum(abs.(lambda_vec)) == 0.0 || s_qn <= 0.0
-        return ham
+        return nothing
     end
 
     lzsz = lz_sz(lambda_vec, sigma_vec)
@@ -29,11 +43,20 @@ function spin_orbit!(ham, s_qn::Float64, lambda_vec::Array, sigma_vec::Array, n_
     if s_qn > 1.0
         ham .+= so_consts.eta * lzsz * (sigma_vec^2 - 0.2 * (3 * s_squared(s_qn) - 1))
     end
+
+    return nothing
 end
 
-function spin_spin!(ham, s_qn::Float64, sigma_vec::Array, n_op_mats, max_acomm_index::Int, ss_consts::SpinSpinConsts)
+function spin_spin!(
+    ham::Matrix{Float64},
+    s_qn::Float64,
+    sigma_vec::Vector{Float64},
+    n_op_mats::Vector{Matrix{Float64}},
+    max_acomm_index::Int,
+    ss_consts::SpinSpinConsts,
+)
     if s_qn <= 0.5
-        return ham
+        return nothing
     end
 
     tsms = three_sz2_minus_s2(s_qn, sigma_vec)
@@ -62,11 +85,23 @@ function spin_spin!(ham, s_qn::Float64, sigma_vec::Array, n_op_mats, max_acomm_i
             )
         )
     end
+
+    return nothing
 end
 
-function spin_rotation!(ham, s_qn::Float64, j_qn::Float64, sigma_vec::Array, omega_vec::Array, n_op_mats, dim::Int, max_acomm_index::Int, sr_consts::SpinRotationConsts)
+function spin_rotation!(
+    ham::Matrix{Float64},
+    s_qn::Float64,
+    j_qn::Float64,
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    n_op_mats::Vector{Matrix{Float64}},
+    dim::Int,
+    max_acomm_index::Int,
+    sr_consts::SpinRotationConsts,
+)
     if s_qn <= 0.0
-        return ham
+        return nothing
     end
 
     ndots = n_dot_s(s_qn, j_qn, sigma_vec, omega_vec, dim)
@@ -95,11 +130,24 @@ function spin_rotation!(ham, s_qn::Float64, j_qn::Float64, sigma_vec::Array, ome
         ham[mask_plus] .+= term_plus[mask_plus]
         ham[mask_minus] .+= term_minus[mask_minus]
     end
+
+    return nothing
 end
 
-function lambda_doubling!(ham, s_qn::Float64, j_qn::Float64, lambda_vec::Array, sigma_vec::Array, omega_vec::Array, n_op_mats, dim::Int, max_acomm_index::Int, ld_consts::LambdaDoublingConsts)
+function lambda_doubling!(
+    ham::Matrix{Float64},
+    s_qn::Float64,
+    j_qn::Float64,
+    lambda_vec::Vector{Int},
+    sigma_vec::Vector{Float64},
+    omega_vec::Vector{Float64},
+    n_op_mats::Vector{Matrix{Float64}},
+    dim::Int,
+    max_acomm_index::Int,
+    ld_consts::LambdaDoublingConsts,
+)
     if maximum(lambda_vec) != 1.0
-        return ham
+        return nothing
     end
 
     sp2sm2 = sp2_plus_sm2(s_qn, lambda_vec, sigma_vec, dim)
@@ -142,4 +190,6 @@ function lambda_doubling!(ham, s_qn::Float64, j_qn::Float64, lambda_vec::Array, 
             ham .+= 0.25 * constant * (jp2jm2 * n_op_mats[idx] + n_op_mats[idx] * jp2jm2)
         end
     end
+
+    return nothing
 end
