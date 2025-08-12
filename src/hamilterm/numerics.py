@@ -70,23 +70,24 @@ class NumericComputation:
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
         if options.INCLUDE_R:
-            h_mat += terms.rotational_num(n_op_mats, self.consts.rotational)
+            terms.rotational_num(h_mat, n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
-            h_mat += terms.spin_orbit_num(
+            terms.spin_orbit_num(
+                h_mat,
                 lambda_basis,
                 sigma_basis,
                 s_qn,
                 n_op_mats,
                 self.consts.spin_orbit,
                 self.max_acomm_index,
-                dim,
             )
         if options.INCLUDE_SS:
-            h_mat += terms.spin_spin_num(
-                sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index, dim
+            terms.spin_spin_num(
+                h_mat, sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
             )
         if options.INCLUDE_SR:
-            h_mat += terms.spin_rotation_num(
+            terms.spin_rotation_num(
+                h_mat,
                 sigma_basis,
                 omega_basis,
                 s_qn,
@@ -97,7 +98,8 @@ class NumericComputation:
                 dim,
             )
         if options.INCLUDE_LD:
-            h_mat += terms.lambda_doubling_num(
+            terms.lambda_doubling_num(
+                h_mat,
                 lambda_basis,
                 sigma_basis,
                 omega_basis,
