@@ -42,7 +42,8 @@ function spin_orbit!(
     end
 
     if s_qn > 1.0
-        ham .+= so_consts.eta * lzsz * (sigma_vec^2 - 0.2 * (3 * s_squared(s_qn) - 1))
+        # Since lzsz is a diagonal matrix, sigma_vec is multiplied element-wise along the diagonal.
+        ham .+= so_consts.eta * lzsz .* (sigma_vec .^ 2 .- 0.2 * (3.0 * s_squared(s_qn) - 1.0))
     end
 
     return nothing
@@ -75,14 +76,14 @@ function spin_spin!(
     if s_qn > 1.5
         ham .+= diagm(
             (ss_consts.theta / 12.0) * (
-                35.0 * sigma_vec^4
-                -
+                35.0 * sigma_vec .^ 4
+                .-
                 30.0 * s_squared(s_qn)
-                +
-                25.0 * sigma_vec^2
-                -
+                .+
+                25.0 * sigma_vec .^ 2
+                .-
                 6.0 * s_squared(s_qn)
-                +
+                .+
                 3.0 * s_squared(s_qn)^2
             )
         )
@@ -122,13 +123,27 @@ function spin_rotation!(
         sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
         omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
 
-        mask_plus = @. (sigma_i == sigma_j - 1) & (omega_i == omega_j - 1)
-        mask_minus = @. (sigma_i == sigma_j + 1) & (omega_i == omega_j + 1)
+        mask_plus = @. (sigma_i == sigma_j - 1.0) & (omega_i == omega_j - 1.0)
+        mask_minus = @. (sigma_i == sigma_j + 1.0) & (omega_i == omega_j + 1.0)
 
-        common_term = -0.5 * sr_consts.gamma_S * (s_squared(s_qn) - 5.0 * sigma_j * (sigma_j - 1.0) - 2.0)
-
-        term_plus = common_term * j_plus(j_qn, omega_j) * s_minus(s_qn, sigma_j)
-        term_minus = common_term * j_minus(j_qn, omega_j) * s_plus(s_qn, sigma_j)
+        term_plus = (
+            -0.5
+            * sr_consts.gamma_S
+            * (s_squared(s_qn) .- 5.0 * sigma_j .* (sigma_j .- 1.0) .- 2.0)
+            .*
+            j_plus(j_qn, omega_j)
+            .*
+            s_minus(s_qn, sigma_j)
+        )
+        term_minus = (
+            -0.5
+            * sr_consts.gamma_S
+            * (s_squared(s_qn) .- 5.0 * sigma_j .* (sigma_j .+ 1.0) .- 2.0)
+            .*
+            j_minus(j_qn, omega_j)
+            .*
+            s_plus(s_qn, sigma_j)
+        )
 
         ham[mask_plus] .+= term_plus[mask_plus]
         ham[mask_minus] .+= term_minus[mask_minus]
