@@ -8,8 +8,6 @@ include("options.jl")
 include("terms.jl")
 include("utils.jl")
 
-# TODO: 1) Spin-orbit has 4 centrifugal distortion constants, while everything else has 3
-
 mutable struct Computation
     term_symbol::String
     consts::AllConsts
@@ -92,6 +90,17 @@ function initialize_computation(
     return comp
 end
 
+function three_sigma(num::Int)
+    c = AllConsts(
+        rotational=RotationalConsts(B=0.8132, D=4.50e-06),
+        spin_spin=SpinSpinConsts(lambda=1.69),
+        spin_rotation=SpinRotationConsts(gamma=-0.028)
+    )
+    for _ in 0:num
+        comp = initialize_computation("3Sigma", c, 1.0, 6, 4)
+    end
+end
+
 function two_pi(num::Int)
     c = AllConsts(
         rotational=RotationalConsts(B=18.55),
@@ -99,12 +108,55 @@ function two_pi(num::Int)
         lambda_doubling=LambdaDoublingConsts(p=0.235, q=-0.0391)
     )
     for _ in 0:num
-        comp = initialize_computation("2Pi", c, 1.0, 6, 3)
+        comp = initialize_computation("2Pi", c, 1.0, 6, 4)
     end
 
     return nothing
 end
 
+function five_pi(num::Int)
+    c = AllConsts(
+        rotational=RotationalConsts(
+            B=18.55,
+            D=4.50e-06,
+            H=4.50e-06,
+            L=4.50e-06,
+            M=4.50e-06,
+            P=4.50e-06,
+        ),
+        spin_orbit=SpinOrbitConsts(A=-139.21, A_D=1.0, A_H=1.0, A_L=1.0, A_M=1.0, eta=1.0),
+        spin_spin=SpinSpinConsts(lambda=1.69, lambda_D=1.0, lambda_H=1.0, theta=1.0),
+        spin_rotation=SpinRotationConsts(
+            gamma=-0.028,
+            gamma_D=-0.028,
+            gamma_H=-0.028,
+            gamma_L=-0.028,
+            gamma_S=-0.028,
+        ),
+        lambda_doubling=LambdaDoublingConsts(
+            o=0.1,
+            p=0.235,
+            q=-0.0391,
+            o_D=0.1,
+            p_D=0.1,
+            q_D=0.1,
+            o_H=0.1,
+            p_H=0.1,
+            q_H=0.1,
+            o_L=0.1,
+            p_L=0.1,
+            q_L=0.1,
+        ),
+    )
+    for _ in 0:num
+        comp = initialize_computation("5Pi", c, 5.0, 6, 4)
+    end
+
+    return nothing
+end
+
+@time three_sigma(1000)
 @time two_pi(500)
+@time five_pi(200)
 
 end # module hamilterm
