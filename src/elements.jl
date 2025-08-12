@@ -5,16 +5,16 @@ end
 function s_plus(s_qn::Float64, sigma::AbstractMatrix)
     term = s_qn * (s_qn + 1) .- sigma .* (sigma .+ 1)
     # Check for negative elements, not sure if this is the most idiomatic way of doing this
-    if any(term .< 0)
-        return 0.0
+    if any(term .< 0.0)
+        return zero(sigma)
     end
     sqrt.(term)
 end
 
 function s_minus(s_qn::Float64, sigma::AbstractMatrix)
     term = s_qn * (s_qn + 1) .- sigma .* (sigma .- 1)
-    if any(term .< 0)
-        return 0.0
+    if any(term .< 0.0)
+        return zero(sigma)
     end
     sqrt.(term)
 end
@@ -24,11 +24,19 @@ function j_squared(j_qn::Float64)
 end
 
 function j_plus(j_qn::Float64, omega::AbstractMatrix)
-    sqrt.(j_qn * (j_qn + 1) .- omega .* (omega .- 1))
+    term = j_qn * (j_qn + 1) .- omega .* (omega .- 1)
+    if any(term .< 0.0)
+        return zero(omega)
+    end
+    sqrt.(term)
 end
 
 function j_minus(j_qn::Float64, omega::AbstractMatrix)
-    sqrt.(j_qn * (j_qn + 1) .- omega .* (omega .+ 1))
+    term = j_qn * (j_qn + 1) .- omega .* (omega .+ 1)
+    if any(term .< 0.0)
+        return zero(omega)
+    end
+    sqrt.(term)
 end
 
 function lz_sz(lambda_vec::Array, sigma_vec::Array)

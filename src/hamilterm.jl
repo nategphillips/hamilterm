@@ -81,7 +81,7 @@ function two_pi(num::Int)
         lambda_doubling=LambdaDoublingConsts(p=0.235, q=-0.0391)
     )
     for _ in 0:num
-        comp = initialize_computation("2Pi", c, 10.0, 6, 3)
+        comp = initialize_computation("2Pi", c, 1.0, 6, 3)
     end
 end
 
