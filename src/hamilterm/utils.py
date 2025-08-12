@@ -49,9 +49,10 @@ def safe_rational(num: int, denom: int) -> Rational:
 
 
 def construct_n_operator_matrices_num(
-    basis_fns: list[tuple[int, float, float]],
     s_qn: float,
     j_qn: float,
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
     max_n_index: int,
     dim: int,
 ) -> list[NDArray[np.float64]]:
@@ -73,9 +74,7 @@ def construct_n_operator_matrices_num(
     n_op_mats: list[NDArray[np.float64]] = [np.zeros((dim, dim)) for _ in range(6)]
 
     # Form the N^2 matrix using the matrix elements above.
-    for i in range(dim):
-        for j in range(dim):
-            n_op_mats[0][i, j] = mel.n_squared_num(i, j, basis_fns, s_qn, j_qn)
+    n_op_mats[0] = mel.n_squared_num(sigma_basis, omega_basis, s_qn, j_qn, dim)
 
     # The following N^{2k} matrices, where k > 1, are formed using matrix multiplication.
     for i in range(1, max_n_index):

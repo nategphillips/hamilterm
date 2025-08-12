@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import overload
-
 import numpy as np
 import sympy as sp
 from numpy.typing import NDArray
@@ -42,15 +40,7 @@ def j_squared_sym(j_qn: Symbol) -> Expr:
     return j_qn * (j_qn + 1)
 
 
-@overload
-def j_plus_num(j_qn: float, omega_qn_j: float) -> float: ...
-
-
-@overload
-def j_plus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
-
-
-def j_plus_num(j_qn: float, omega_qn_j: float | NDArray[np.float64]) -> float | NDArray[np.float64]:
+def j_plus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨J, Ω - 1|J+|J, Ω⟩ = [J(J + 1) - Ω(Ω - 1)]^(1/2).
 
     Args:
@@ -60,24 +50,24 @@ def j_plus_num(j_qn: float, omega_qn_j: float | NDArray[np.float64]) -> float | 
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω - 1)]^(1/2)
     """
-    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
+    term = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1)
+
+    # NOTE: 25/08/12 - This check must be performed to avoid runtime errors in numpy. Unfortunately,
+    #       it slows down the computations by a noticeable margin. In the future, it might be worth
+    #       returning an error elsewhere if the values of J or S will result in a term that's less
+    #       than zero. The term.min() < 0.0 approach is noticeably faster than np.any(term < 0.0)
+    #       for some reason.
+    if term.min() < 0.0:
+        return np.zeros_like(omega_qn_j)
+
+    return np.sqrt(term)
 
 
 def j_plus_sym(j_qn: Symbol, omega_qn_j: Rational) -> Expr:
     return sp.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j - 1))
 
 
-@overload
-def j_minus_num(j_qn: float, omega_qn_j: float) -> float: ...
-
-
-@overload
-def j_minus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
-
-
-def j_minus_num(
-    j_qn: float, omega_qn_j: float | NDArray[np.float64]
-) -> float | NDArray[np.float64]:
+def j_minus_num(j_qn: float, omega_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨J, Ω + 1|J-|J, Ω⟩ = [J(J + 1) - Ω(Ω + 1)]^(1/2).
 
     Args:
@@ -87,7 +77,12 @@ def j_minus_num(
     Returns:
         float: Matrix element [J(J + 1) - Ω(Ω + 1)]^(1/2)
     """
-    return np.sqrt(j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1))
+    term = j_qn * (j_qn + 1) - omega_qn_j * (omega_qn_j + 1)
+
+    if term.min() < 0.0:
+        return np.zeros_like(omega_qn_j)
+
+    return np.sqrt(term)
 
 
 def j_minus_sym(j_qn: Symbol, omega_qn_j: Rational) -> Expr:
@@ -110,15 +105,7 @@ def s_squared_sym(s_qn: Rational) -> Expr:
     return s_qn * (s_qn + 1)
 
 
-@overload
-def s_plus_num(s_qn: float, sigma_qn_j: float) -> float: ...
-
-
-@overload
-def s_plus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
-
-
-def s_plus_num(s_qn: float, sigma_qn_j: float | NDArray[np.float64]) -> float | NDArray[np.float64]:
+def s_plus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨S, Σ + 1|S+|S, Σ⟩ = [S(S + 1) - Σ(Σ + 1)]^(1/2).
 
     Args:
@@ -128,24 +115,19 @@ def s_plus_num(s_qn: float, sigma_qn_j: float | NDArray[np.float64]) -> float | 
     Returns:
         float: Matrix element [S(S + 1) - Σ(Σ + 1)]^(1/2)
     """
-    return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
+    term = s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1)
+
+    if term.min() < 0.0:
+        return np.zeros_like(sigma_qn_j)
+
+    return np.sqrt(term)
 
 
 def s_plus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
     return sp.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j + 1))
 
 
-@overload
-def s_minus_num(s_qn: float, sigma_qn_j: float) -> float: ...
-
-
-@overload
-def s_minus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]: ...
-
-
-def s_minus_num(
-    s_qn: float, sigma_qn_j: float | NDArray[np.float64]
-) -> float | NDArray[np.float64]:
+def s_minus_num(s_qn: float, sigma_qn_j: NDArray[np.float64]) -> NDArray[np.float64]:
     """Return the off-diagonal matrix element ⟨S, Σ - 1|S-|S, Σ⟩ = [S(S + 1) - Σ(Σ - 1)]^(1/2).
 
     Args:
@@ -155,7 +137,12 @@ def s_minus_num(
     Returns:
         float: Matrix element [S(S + 1) - Σ(Σ - 1)]^(1/2)
     """
-    return np.sqrt(s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1))
+    term = s_qn * (s_qn + 1) - sigma_qn_j * (sigma_qn_j - 1)
+
+    if term.min() < 0.0:
+        return np.zeros_like(sigma_qn_j)
+
+    return np.sqrt(term)
 
 
 def s_minus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
@@ -163,38 +150,45 @@ def s_minus_sym(s_qn: Rational, sigma_qn_j: Rational) -> Expr:
 
 
 def n_squared_num(
-    i: int, j: int, basis_fns: list[tuple[int, float, float]], s_qn: float, j_qn: float
-) -> float:
+    sigma_basis: NDArray[np.float64],
+    omega_basis: NDArray[np.float64],
+    s_qn: float,
+    j_qn: float,
+    dim: int,
+) -> NDArray[np.float64]:
     """Return matrix elements for the N^2 operator.
 
     N^2 = J^2 + S^2 - 2JzSz - (J+S- + J-S+).
 
     Args:
-        i (int): Index i (row) of the Hamiltonian matrix
-        j (int): Index j (col) of the Hamiltonian matrix
-        basis_fns (list[tuple[int, float, float]]): List of basis vectors |Λ, Σ; Ω>
         s_qn (float): Quantum number S
         j_qn (float): Quantum number J
 
     Returns:
         float | float: Matrix elements for J^2 + S^2 - 2JzSz - (J+S- + J-S+)
     """
-    _, sigma_qn_i, omega_qn_i = basis_fns[i]
-    _, sigma_qn_j, omega_qn_j = basis_fns[j]
+    sigma_i, sigma_j = utils.form_basis_matrices_num(sigma_basis)
+    omega_i, omega_j = utils.form_basis_matrices_num(omega_basis)
+
+    result: NDArray[np.float64] = np.zeros((dim, dim))
 
     # ⟨J, S, Ω, Σ|J^2 + S^2 - 2JzSz|J, S, Ω, Σ⟩ = J(J + 1) + S(S + 1) - 2ΩΣ
-    if i == j:
-        return j_squared_num(j_qn) + s_squared_num(s_qn) - 2 * omega_qn_j * sigma_qn_j
+    np.fill_diagonal(result, j_squared_num(j_qn) + s_squared_num(s_qn) - 2.0 * omega_j * sigma_j)
+
+    # Denote the areas in the array where Ω_i = Ω_j - 1 and Σ_i = Σ_j - 1
+    mask_minus: NDArray[np.bool] = (omega_i == omega_j - 1) & (sigma_i == sigma_j - 1)
+    # Denote the areas in the array where Ω_i = Ω_j + 1 and Σ_i = Σ_j + 1
+    mask_plus: NDArray[np.bool] = (omega_i == omega_j + 1) & (sigma_i == sigma_j + 1)
 
     # ⟨J, S, Ω - 1, Σ - 1|-(J+S-)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω - 1)][S(S + 1) - Σ(Σ - 1)])^(1/2)
-    if omega_qn_i == omega_qn_j - 1 and sigma_qn_i == sigma_qn_j - 1:
-        return -j_plus_num(j_qn, omega_qn_j) * s_minus_num(s_qn, sigma_qn_j)
-
+    term_minus: NDArray[np.float64] = -j_plus_num(j_qn, omega_j) * s_minus_num(s_qn, sigma_j)
     # ⟨J, S, Ω + 1, Σ + 1|-(J-S+)|J, S, Ω, Σ⟩ = -([J(J + 1) - Ω(Ω + 1)][S(S + 1) - Σ(Σ + 1)])^(1/2)
-    if omega_qn_i == omega_qn_j + 1 and sigma_qn_i == sigma_qn_j + 1:
-        return -j_minus_num(j_qn, omega_qn_j) * s_plus_num(s_qn, sigma_qn_j)
+    term_plus: NDArray[np.float64] = -j_minus_num(j_qn, omega_j) * s_plus_num(s_qn, sigma_j)
 
-    return 0.0
+    result[mask_minus] = term_minus[mask_minus]
+    result[mask_plus] = term_plus[mask_plus]
+
+    return result
 
 
 def n_squared_sym(

@@ -64,7 +64,7 @@ class NumericComputation:
         lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns, dim)
 
         n_op_mats = utils.construct_n_operator_matrices_num(
-            basis_fns, s_qn, self.j_qn, self.max_n_index, dim
+            s_qn, self.j_qn, sigma_basis, omega_basis, self.max_n_index, dim
         )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
@@ -158,7 +158,7 @@ def three_sigma(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t3Σ Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t3Σ Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def two_pi(num: int) -> None:
@@ -179,7 +179,7 @@ def two_pi(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t2Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t2Π Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def five_pi(num: int) -> None:
@@ -219,7 +219,7 @@ def five_pi(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t5Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t5Π Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def main() -> None:
