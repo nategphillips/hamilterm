@@ -13,22 +13,22 @@ end
     A_H::Float64 = 0.0
     A_L::Float64 = 0.0
     A_M::Float64 = 0.0
-    eta::Float64 = 0.0
+    η::Float64 = 0.0
 end
 
 @kwdef struct SpinSpinConsts
-    lambda::Float64 = 0.0
-    lambda_D::Float64 = 0.0
-    lambda_H::Float64 = 0.0
-    theta::Float64 = 0.0
+    λ::Float64 = 0.0
+    λ_D::Float64 = 0.0
+    λ_H::Float64 = 0.0
+    θ::Float64 = 0.0
 end
 
 @kwdef struct SpinRotationConsts
-    gamma::Float64 = 0.0
-    gamma_D::Float64 = 0.0
-    gamma_H::Float64 = 0.0
-    gamma_L::Float64 = 0.0
-    gamma_S::Float64 = 0.0
+    γ::Float64 = 0.0
+    γ_D::Float64 = 0.0
+    γ_H::Float64 = 0.0
+    γ_L::Float64 = 0.0
+    γ_S::Float64 = 0.0
 end
 
 @kwdef struct LambdaDoublingConsts

@@ -1,9 +1,9 @@
 function rotational!(
-    ham::Matrix{Float64},
+    H_mat::Matrix{Float64},
     n_op_mats::Vector{Matrix{Float64}},
     r_consts::RotationalConsts,
 )
-    ham .+= (
+    H_mat .+= (
         r_consts.B .* n_op_mats[1]
         -
         r_consts.D .* n_op_mats[2]
@@ -17,74 +17,74 @@ function rotational!(
 end
 
 function spin_orbit!(
-    ham::Matrix{Float64},
-    s_qn::Float64,
-    lambda_vec::Vector{Int},
-    sigma_vec::Vector{Float64},
+    H_mat::Matrix{Float64},
+    S::Float64,
+    Λ_vec::Vector{Int},
+    Σ_vec::Vector{Float64},
     n_op_mats,
     max_acomm_index::Int,
     so_consts::SpinOrbitConsts,
 )
-    if maximum(abs.(lambda_vec)) == 0.0 || s_qn <= 0.0
+    if maximum(abs.(Λ_vec)) == 0.0 || S <= 0.0
         return nothing
     end
 
-    lzsz = lz_sz(lambda_vec, sigma_vec)
-    ham .+= so_consts.A * lzsz
+    LzSz = lz_sz(Λ_vec, Σ_vec)
+    H_mat .+= so_consts.A * LzSz
 
     vec = [so_consts.A_D, so_consts.A_H, so_consts.A_L, so_consts.A_M]
     spin_orbit_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_orbit_cd_consts)
         for (idx, constant) in enumerate(spin_orbit_cd_consts)
-            ham .+= 0.5 * constant * (n_op_mats[idx] * lzsz + lzsz * n_op_mats[idx])
+            H_mat .+= 0.5 * constant * (n_op_mats[idx] * LzSz + LzSz * n_op_mats[idx])
         end
     end
 
-    if s_qn > 1.0
-        # Since lzsz is a diagonal matrix, sigma_vec is multiplied element-wise along the diagonal.
-        ham .+= so_consts.eta * lzsz .* (sigma_vec .^ 2 .- 0.2 * (3.0 * s_squared(s_qn) - 1.0))
+    if S > 1.0
+        # Since LzSz is a diagonal matrix, Σ_vec is multiplied element-wise along the diagonal.
+        H_mat .+= so_consts.η * LzSz .* (Σ_vec .^ 2 .- 0.2 * (3.0 * s_squared(S) - 1.0))
     end
 
     return nothing
 end
 
 function spin_spin!(
-    ham::Matrix{Float64},
-    s_qn::Float64,
-    sigma_vec::Vector{Float64},
+    H_mat::Matrix{Float64},
+    S::Float64,
+    Σ_vec::Vector{Float64},
     n_op_mats::Vector{Matrix{Float64}},
     max_acomm_index::Int,
     ss_consts::SpinSpinConsts,
 )
-    if s_qn <= 0.5
+    if S <= 0.5
         return nothing
     end
 
-    tsms = three_sz2_minus_s2(s_qn, sigma_vec)
-    ham .+= (2.0 * ss_consts.lambda / 3.0) * tsms
+    three_Sz²_minus_S² = three_sz2_minus_s2(S, Σ_vec)
+    H_mat .+= (2.0 * ss_consts.λ / 3.0) * three_Sz²_minus_S²
 
-    vec = [ss_consts.lambda_D, ss_consts.lambda_H]
+    vec = [ss_consts.λ_D, ss_consts.λ_H]
     spin_spin_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_spin_cd_consts)
         for (idx, constant) in enumerate(spin_spin_cd_consts)
-            ham .+= (constant / 3.0) * (tsms * n_op_mats[idx] + n_op_mats[idx] * tsms)
+            H_mat .+= (constant / 3.0) * (three_Sz²_minus_S² * n_op_mats[idx] + n_op_mats[idx] * three_Sz²_minus_S²)
         end
     end
 
-    if s_qn > 1.5
-        ham .+= diagm(
-            (ss_consts.theta / 12.0) * (
-                35.0 * sigma_vec .^ 4
+    if S > 1.5
+        H_mat .+= diagm(
+            (ss_consts.θ / 12.0) * (
+                35.0 * Σ_vec .^ 4
                 .-
-                30.0 * s_squared(s_qn)
+                30.0 * s_squared(S)
                 .+
-                25.0 * sigma_vec .^ 2
+                25.0 * Σ_vec .^ 2
                 .-
-                6.0 * s_squared(s_qn)
+                6.0 * s_squared(S)
                 .+
-                3.0 * s_squared(s_qn)^2
+                3.0 * s_squared(S)^2
             )
         )
     end
@@ -93,89 +93,89 @@ function spin_spin!(
 end
 
 function spin_rotation!(
-    ham::Matrix{Float64},
-    s_qn::Float64,
-    j_qn::Float64,
-    sigma_vec::Vector{Float64},
-    omega_vec::Vector{Float64},
+    H_mat::Matrix{Float64},
+    S::Float64,
+    J::Float64,
+    Σ_vec::Vector{Float64},
+    Ω_vec::Vector{Float64},
     n_op_mats::Vector{Matrix{Float64}},
     dim::Int,
     max_acomm_index::Int,
     sr_consts::SpinRotationConsts,
 )
-    if s_qn <= 0.0
+    if S <= 0.0
         return nothing
     end
 
-    ndots = n_dot_s(s_qn, j_qn, sigma_vec, omega_vec, dim)
-    ham .+= sr_consts.gamma * ndots
+    N_dot_S = n_dot_s(S, J, Σ_vec, Ω_vec, dim)
+    H_mat .+= sr_consts.γ * N_dot_S
 
-    vec = [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L]
+    vec = [sr_consts.γ_D, sr_consts.γ_H, sr_consts.γ_L]
     spin_rotation_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_rotation_cd_consts)
         for (idx, constant) in enumerate(spin_rotation_cd_consts)
-            ham .+= 0.5 * constant * (ndots * n_op_mats[idx] + n_op_mats[idx] * ndots)
+            H_mat .+= 0.5 * constant * (N_dot_S * n_op_mats[idx] + n_op_mats[idx] * N_dot_S)
         end
     end
 
-    if s_qn > 1.0
-        sigma_i, sigma_j = generate_basis_matrices(sigma_vec, dim)
-        omega_i, omega_j = generate_basis_matrices(omega_vec, dim)
+    if S > 1.0
+        Σ_mat_i, Σ_mat_j = generate_basis_matrices(Σ_vec, dim)
+        Ω_mat_i, Ω_mat_j = generate_basis_matrices(Ω_vec, dim)
 
-        mask_plus = @. (sigma_i == sigma_j - 1.0) & (omega_i == omega_j - 1.0)
-        mask_minus = @. (sigma_i == sigma_j + 1.0) & (omega_i == omega_j + 1.0)
+        mask_plus = @. (Σ_mat_i == Σ_mat_j - 1.0) & (Ω_mat_i == Ω_mat_j - 1.0)
+        mask_minus = @. (Σ_mat_i == Σ_mat_j + 1.0) & (Ω_mat_i == Ω_mat_j + 1.0)
 
         term_plus = (
             -0.5
-            * sr_consts.gamma_S
-            * (s_squared(s_qn) .- 5.0 * sigma_j .* (sigma_j .- 1.0) .- 2.0)
+            * sr_consts.γ_S
+            * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .- 1.0) .- 2.0)
             .*
-            j_plus(j_qn, omega_j)
+            j_plus(J, Ω_mat_j)
             .*
-            s_minus(s_qn, sigma_j)
+            s_minus(S, Σ_mat_j)
         )
         term_minus = (
             -0.5
-            * sr_consts.gamma_S
-            * (s_squared(s_qn) .- 5.0 * sigma_j .* (sigma_j .+ 1.0) .- 2.0)
+            * sr_consts.γ_S
+            * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .+ 1.0) .- 2.0)
             .*
-            j_minus(j_qn, omega_j)
+            j_minus(J, Ω_mat_j)
             .*
-            s_plus(s_qn, sigma_j)
+            s_plus(S, Σ_mat_j)
         )
 
-        ham[mask_plus] .+= term_plus[mask_plus]
-        ham[mask_minus] .+= term_minus[mask_minus]
+        H_mat[mask_plus] .+= term_plus[mask_plus]
+        H_mat[mask_minus] .+= term_minus[mask_minus]
     end
 
     return nothing
 end
 
 function lambda_doubling!(
-    ham::Matrix{Float64},
-    s_qn::Float64,
-    j_qn::Float64,
-    lambda_vec::Vector{Int},
-    sigma_vec::Vector{Float64},
-    omega_vec::Vector{Float64},
+    H_mat::Matrix{Float64},
+    S::Float64,
+    J::Float64,
+    Λ_vec::Vector{Int},
+    Σ_vec::Vector{Float64},
+    Ω_vec::Vector{Float64},
     n_op_mats::Vector{Matrix{Float64}},
     dim::Int,
     max_acomm_index::Int,
     ld_consts::LambdaDoublingConsts,
 )
-    if maximum(lambda_vec) != 1.0
+    if maximum(Λ_vec) != 1.0
         return nothing
     end
 
-    sp2sm2 = sp2_plus_sm2(s_qn, lambda_vec, sigma_vec, dim)
-    ham .+= 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * sp2sm2
+    S₊²_plus_S₋² = sp2_plus_sm2(S, Λ_vec, Σ_vec, dim)
+    H_mat .+= 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * S₊²_plus_S₋²
 
-    jpspjmsm = jpsp_plus_jmsm(s_qn, j_qn, lambda_vec, sigma_vec, omega_vec, dim)
-    ham .-= 0.5 * (ld_consts.p + 2.0 * ld_consts.q) * jpspjmsm
+    J₊S₋_plus_J₋S₊ = jpsp_plus_jmsm(S, J, Λ_vec, Σ_vec, Ω_vec, dim)
+    H_mat .-= 0.5 * (ld_consts.p + 2.0 * ld_consts.q) * J₊S₋_plus_J₋S₊
 
-    jp2jm2 = jp2_plus_jm2(j_qn, lambda_vec, omega_vec, dim)
-    ham .+= 0.5 * ld_consts.q * jp2jm2
+    J₊²_plus_J₋² = jp2_plus_jm2(J, Λ_vec, Ω_vec, dim)
+    H_mat .+= 0.5 * ld_consts.q * J₊²_plus_J₋²
 
     vec1 = [
         ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
@@ -200,15 +200,15 @@ function lambda_doubling!(
 
     if any(!iszero, lambda_doubling_cd_consts_opq + lambda_doubling_cd_consts_pq + lambda_doubling_cd_consts_q)
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_opq)
-            ham .+= 0.25 * constant * (sp2sm2 * n_op_mats[idx] + n_op_mats[idx] * sp2sm2)
+            H_mat .+= 0.25 * constant * (S₊²_plus_S₋² * n_op_mats[idx] + n_op_mats[idx] * S₊²_plus_S₋²)
         end
 
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_pq)
-            ham .-= 0.25 * constant * (jpspjmsm * n_op_mats[idx] + n_op_mats[idx] * jpspjmsm)
+            H_mat .-= 0.25 * constant * (J₊S₋_plus_J₋S₊ * n_op_mats[idx] + n_op_mats[idx] * J₊S₋_plus_J₋S₊)
         end
 
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_q)
-            ham .+= 0.25 * constant * (jp2jm2 * n_op_mats[idx] + n_op_mats[idx] * jp2jm2)
+            H_mat .+= 0.25 * constant * (J₊²_plus_J₋² * n_op_mats[idx] + n_op_mats[idx] * J₊²_plus_J₋²)
         end
     end
 
