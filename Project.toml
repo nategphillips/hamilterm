@@ -2,3 +2,9 @@ name = "hamilterm"
 uuid = "435e9042-2788-4dfc-8e6a-742e82250a6a"
 authors = ["nategphillips <30729007+nategphillips@users.noreply.github.com>"]
 version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[compat]
+LinearAlgebra = "1.11.0"
