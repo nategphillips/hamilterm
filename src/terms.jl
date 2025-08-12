@@ -32,7 +32,8 @@ function spin_orbit!(
     lzsz = lz_sz(lambda_vec, sigma_vec)
     ham .+= so_consts.A * lzsz
 
-    spin_orbit_cd_consts = [so_consts.A_D, so_consts.A_H, so_consts.A_L, so_consts.A_M][begin:max_acomm_index]
+    vec = [so_consts.A_D, so_consts.A_H, so_consts.A_L, so_consts.A_M]
+    spin_orbit_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_orbit_cd_consts)
         for (idx, constant) in enumerate(spin_orbit_cd_consts)
@@ -62,7 +63,8 @@ function spin_spin!(
     tsms = three_sz2_minus_s2(s_qn, sigma_vec)
     ham .+= (2.0 * ss_consts.lambda / 3.0) * tsms
 
-    spin_spin_cd_consts = [ss_consts.lambda_D, ss_consts.lambda_H][begin:max_acomm_index]
+    vec = [ss_consts.lambda_D, ss_consts.lambda_H]
+    spin_spin_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_spin_cd_consts)
         for (idx, constant) in enumerate(spin_spin_cd_consts)
@@ -107,7 +109,8 @@ function spin_rotation!(
     ndots = n_dot_s(s_qn, j_qn, sigma_vec, omega_vec, dim)
     ham .+= sr_consts.gamma * ndots
 
-    spin_rotation_cd_consts = [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L][begin:max_acomm_index]
+    vec = [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L]
+    spin_rotation_cd_consts = safe_slice(vec, max_acomm_index)
 
     if any(!iszero, spin_rotation_cd_consts)
         for (idx, constant) in enumerate(spin_rotation_cd_consts)
@@ -159,23 +162,26 @@ function lambda_doubling!(
     jp2jm2 = jp2_plus_jm2(j_qn, lambda_vec, omega_vec, dim)
     ham .+= 0.5 * ld_consts.q * jp2jm2
 
-    lambda_doubling_cd_consts_opq = [
+    vec1 = [
         ld_consts.o_D + ld_consts.p_D + ld_consts.q_D,
         ld_consts.o_H + ld_consts.p_H + ld_consts.q_H,
         ld_consts.o_L + ld_consts.p_L + ld_consts.q_L,
-    ][begin:max_acomm_index]
+    ]
+    lambda_doubling_cd_consts_opq = safe_slice(vec1, max_acomm_index)
 
-    lambda_doubling_cd_consts_pq = [
+    vec2 = [
         ld_consts.p_D + 2.0 * ld_consts.q_D,
         ld_consts.p_H + 2.0 * ld_consts.q_H,
         ld_consts.p_L + 2.0 * ld_consts.q_L,
-    ][begin:max_acomm_index]
+    ]
+    lambda_doubling_cd_consts_pq = safe_slice(vec2, max_acomm_index)
 
-    lambda_doubling_cd_consts_q = [
+    vec3 = [
         ld_consts.q_D,
         ld_consts.q_H,
         ld_consts.q_L,
-    ][begin:max_acomm_index]
+    ]
+    lambda_doubling_cd_consts_q = safe_slice(vec3, max_acomm_index)
 
     if any(!iszero, lambda_doubling_cd_consts_opq + lambda_doubling_cd_consts_pq + lambda_doubling_cd_consts_q)
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_opq)

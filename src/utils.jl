@@ -28,3 +28,7 @@ function generate_basis_matrices(basis_vec::Vector{<:Real}, dim::Int)
 
     return basis_matrix_i, basis_matrix_j
 end
+
+function safe_slice(vec::Vector{Float64}, n::Int)
+    return vec[begin:min(length(vec), n)]
+end
