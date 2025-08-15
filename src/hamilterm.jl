@@ -1,6 +1,12 @@
 module hamilterm
 
-export initialize_computation, AllConsts, RotationalConsts, SpinOrbitConsts, SpinSpinConsts, SpinRotationConsts, LambdaDoublingConsts
+export initialize_computation,
+    AllConsts,
+    RotationalConsts,
+    SpinOrbitConsts,
+    SpinSpinConsts,
+    SpinRotationConsts,
+    LambdaDoublingConsts
 
 using LinearAlgebra
 
@@ -20,7 +26,9 @@ mutable struct Computation
     eigenvalues::Vector{Float64}
     eigenvectors::Matrix{Float64}
 
-    Computation(term_symbol, consts, J, max_n_index, max_acomm_index) = new(term_symbol, consts, J, max_n_index, max_acomm_index)
+    function Computation(term_symbol, consts, J, max_n_index, max_acomm_index)
+        return new(term_symbol, consts, J, max_n_index, max_acomm_index)
+    end
 end
 
 function construct_n_operator_matrices(
@@ -36,7 +44,7 @@ function construct_n_operator_matrices(
     n_op_mats[begin] = n_squared(S, J, Σ_vec, Ω_vec, dim)
 
     for i in 2:max_n_index
-        n_op_mats[i] = n_op_mats[i-1] * n_op_mats[begin]
+        n_op_mats[i] = n_op_mats[i - 1] * n_op_mats[begin]
     end
 
     return n_op_mats
@@ -61,10 +69,31 @@ function compute_hamiltonian!(comp::Computation)
         spin_spin!(H_mat, S, Σ_vec, n_op_mats, comp.max_acomm_index, comp.consts.spin_spin)
     end
     if INCLUDE_SR
-        spin_rotation!(H_mat, S, comp.J, Σ_vec, Ω_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.spin_rotation)
+        spin_rotation!(
+            H_mat,
+            S,
+            comp.J,
+            Σ_vec,
+            Ω_vec,
+            n_op_mats,
+            dim,
+            comp.max_acomm_index,
+            comp.consts.spin_rotation,
+        )
     end
     if INCLUDE_LD
-        lambda_doubling!(H_mat, S, comp.J, Λ_vec, Σ_vec, Ω_vec, n_op_mats, dim, comp.max_acomm_index, comp.consts.lambda_doubling)
+        lambda_doubling!(
+            H_mat,
+            S,
+            comp.J,
+            Λ_vec,
+            Σ_vec,
+            Ω_vec,
+            n_op_mats,
+            dim,
+            comp.max_acomm_index,
+            comp.consts.lambda_doubling,
+        )
     end
 
     comp.hamiltonian = Hermitian(H_mat)
@@ -79,11 +108,7 @@ function compute_eigensystem!(comp::Computation)
 end
 
 function initialize_computation(
-    term_symbol::String,
-    consts::AllConsts,
-    J::Float64,
-    max_n_index::Int,
-    max_acomm_index::Int,
+    term_symbol::String, consts::AllConsts, J::Float64, max_n_index::Int, max_acomm_index::Int
 )
     comp = Computation(term_symbol, consts, J, max_n_index, max_acomm_index)
     compute_hamiltonian!(comp)

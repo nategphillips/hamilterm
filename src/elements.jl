@@ -42,16 +42,10 @@ end
 lz_sz(Λ_vec::Vector{Int}, Σ_vec::Vector{Float64}) = diagm(Λ_vec .* Σ_vec)
 
 function three_sz2_minus_s2(S::Float64, Σ_vec::Vector{Float64})
-    diagm(3.0 * Σ_vec .^ 2 .- s_squared(S))
+    return diagm(3.0 * Σ_vec .^ 2 .- s_squared(S))
 end
 
-function n_squared(
-    S::Float64,
-    J::Float64,
-    Σ_vec::Vector{Float64},
-    Ω_vec::Vector{Float64},
-    dim::Int,
-)
+function n_squared(S::Float64, J::Float64, Σ_vec::Vector{Float64}, Ω_vec::Vector{Float64}, dim::Int)
     Σ_mat_i, Σ_mat_j = generate_basis_matrices(Σ_vec, dim)
     Ω_mat_i, Ω_mat_j = generate_basis_matrices(Ω_vec, dim)
 
@@ -69,13 +63,7 @@ function n_squared(
     return result
 end
 
-function n_dot_s(
-    S::Float64,
-    J::Float64,
-    Σ_vec::Vector{Float64},
-    Ω_vec::Vector{Float64},
-    dim::Int,
-)
+function n_dot_s(S::Float64, J::Float64, Σ_vec::Vector{Float64}, Ω_vec::Vector{Float64}, dim::Int)
     Σ_mat_i, Σ_mat_j = generate_basis_matrices(Σ_vec, dim)
     Ω_mat_i, Ω_mat_j = generate_basis_matrices(Ω_vec, dim)
 

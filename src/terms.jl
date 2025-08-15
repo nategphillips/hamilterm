@@ -1,16 +1,12 @@
 function rotational!(
-    H_mat::Matrix{Float64},
-    n_op_mats::Vector{Matrix{Float64}},
-    r_consts::RotationalConsts,
+    H_mat::Matrix{Float64}, n_op_mats::Vector{Matrix{Float64}}, r_consts::RotationalConsts
 )
     H_mat .+= (
-        r_consts.B .* n_op_mats[1]
-        -
-        r_consts.D .* n_op_mats[2]
-        + r_consts.H .* n_op_mats[3]
-        + r_consts.L .* n_op_mats[4]
-        + r_consts.M .* n_op_mats[5]
-        + r_consts.P .* n_op_mats[6]
+        r_consts.B .* n_op_mats[1] - r_consts.D .* n_op_mats[2] +
+        r_consts.H .* n_op_mats[3] +
+        r_consts.L .* n_op_mats[4] +
+        r_consts.M .* n_op_mats[5] +
+        r_consts.P .* n_op_mats[6]
     )
 
     return nothing
@@ -69,23 +65,18 @@ function spin_spin!(
 
     if any(!iszero, spin_spin_cd_consts)
         for (idx, constant) in enumerate(spin_spin_cd_consts)
-            H_mat .+= (constant / 3.0) * (three_Sz²_minus_S² * n_op_mats[idx] + n_op_mats[idx] * three_Sz²_minus_S²)
+            H_mat .+=
+                (constant / 3.0) *
+                (three_Sz²_minus_S² * n_op_mats[idx] + n_op_mats[idx] * three_Sz²_minus_S²)
         end
     end
 
     if S > 1.5
         H_mat .+= diagm(
             (ss_consts.θ / 12.0) * (
-                35.0 * Σ_vec .^ 4
-                .-
-                30.0 * s_squared(S)
-                .+
-                25.0 * Σ_vec .^ 2
-                .-
-                6.0 * s_squared(S)
-                .+
-                3.0 * s_squared(S)^2
-            )
+                35.0 * Σ_vec .^ 4 .- 30.0 * s_squared(S) .+ 25.0 * Σ_vec .^ 2 .-
+                6.0 * s_squared(S) .+ 3.0 * s_squared(S)^2
+            ),
         )
     end
 
@@ -127,22 +118,12 @@ function spin_rotation!(
         mask_minus = @. (Σ_mat_i == Σ_mat_j + 1.0) & (Ω_mat_i == Ω_mat_j + 1.0)
 
         term_plus = (
-            -0.5
-            * sr_consts.γ_S
-            * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .- 1.0) .- 2.0)
-            .*
-            j_plus(J, Ω_mat_j)
-            .*
-            s_minus(S, Σ_mat_j)
+            -0.5 * sr_consts.γ_S * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .- 1.0) .- 2.0) .*
+            j_plus(J, Ω_mat_j) .* s_minus(S, Σ_mat_j)
         )
         term_minus = (
-            -0.5
-            * sr_consts.γ_S
-            * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .+ 1.0) .- 2.0)
-            .*
-            j_minus(J, Ω_mat_j)
-            .*
-            s_plus(S, Σ_mat_j)
+            -0.5 * sr_consts.γ_S * (s_squared(S) .- 5.0 * Σ_mat_j .* (Σ_mat_j .+ 1.0) .- 2.0) .*
+            j_minus(J, Ω_mat_j) .* s_plus(S, Σ_mat_j)
         )
 
         H_mat[mask_plus] .+= term_plus[mask_plus]
@@ -191,24 +172,28 @@ function lambda_doubling!(
     ]
     lambda_doubling_cd_consts_pq = safe_slice(vec2, max_acomm_index)
 
-    vec3 = [
-        ld_consts.q_D,
-        ld_consts.q_H,
-        ld_consts.q_L,
-    ]
+    vec3 = [ld_consts.q_D, ld_consts.q_H, ld_consts.q_L]
     lambda_doubling_cd_consts_q = safe_slice(vec3, max_acomm_index)
 
-    if any(!iszero, lambda_doubling_cd_consts_opq + lambda_doubling_cd_consts_pq + lambda_doubling_cd_consts_q)
+    if any(
+        !iszero,
+        lambda_doubling_cd_consts_opq + lambda_doubling_cd_consts_pq + lambda_doubling_cd_consts_q,
+    )
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_opq)
-            H_mat .+= 0.25 * constant * (S₊²_plus_S₋² * n_op_mats[idx] + n_op_mats[idx] * S₊²_plus_S₋²)
+            H_mat .+=
+                0.25 * constant * (S₊²_plus_S₋² * n_op_mats[idx] + n_op_mats[idx] * S₊²_plus_S₋²)
         end
 
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_pq)
-            H_mat .-= 0.25 * constant * (J₊S₋_plus_J₋S₊ * n_op_mats[idx] + n_op_mats[idx] * J₊S₋_plus_J₋S₊)
+            H_mat .-=
+                0.25 *
+                constant *
+                (J₊S₋_plus_J₋S₊ * n_op_mats[idx] + n_op_mats[idx] * J₊S₋_plus_J₋S₊)
         end
 
         for (idx, constant) in enumerate(lambda_doubling_cd_consts_q)
-            H_mat .+= 0.25 * constant * (J₊²_plus_J₋² * n_op_mats[idx] + n_op_mats[idx] * J₊²_plus_J₋²)
+            H_mat .+=
+                0.25 * constant * (J₊²_plus_J₋² * n_op_mats[idx] + n_op_mats[idx] * J₊²_plus_J₋²)
         end
     end
 
