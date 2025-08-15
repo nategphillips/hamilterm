@@ -1,15 +1,16 @@
 function parse_term_symbol(term_symbol::String)
     spin_multiplicity = parse(Int, term_symbol[begin])
     S = 0.5 * (spin_multiplicity - 1)
-    state = term_symbol[begin+1:end]
+    state = term_symbol[(begin + 1):end]
     Λ = LAMBDA_INT_MAP[state]
 
     return S, Λ
 end
 
 function generate_basis_fns(S::Float64, Λ::Int)
-    Σ_vals = -S+0:2*S
-    Λ_vals = Λ == 0 ? [Λ] : [-Λ, Λ]
+    Σ_vals = (-S):1:S
+    # The first Λ is wrapped in a 1-tuple since both returns need to be iterable.
+    Λ_vals = Λ == 0 ? (Λ,) : (-Λ, Λ)
 
     return [(Λ, Σ, Λ + Σ) for Λ in Λ_vals for Σ in Σ_vals]
 end
