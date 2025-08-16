@@ -6,9 +6,9 @@ readme = "README.md"
 authors = [
     { name = "nategphillips", email = "30729007+nategphillips@users.noreply.github.com" }
 ]
-requires-python = "==3.13.5"
+requires-python = "==3.13.7"
 dependencies = [
-    "numpy==2.3.1",
+    "numpy==2.3.2",
     "sympy==1.14.0",
 ]
 
