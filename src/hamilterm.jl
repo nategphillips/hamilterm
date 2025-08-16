@@ -16,6 +16,14 @@ include("options.jl")
 include("terms.jl")
 include("utils.jl")
 
+# TODO: 25/08/13
+#   ✓ Configure formatting to follow BlueStyle
+#   × Add package tests and benchmarks
+#   × Ensure type stability with JET.jl / Cthulhu.jl / DispatchDoctor.jl
+#   × Use StaticArrays.jl since all arrays & matrices are ≤ 100 elements
+#   × Add automated checks using Aqua.jl
+#   × Write docstrings
+
 mutable struct Computation
     term_symbol::String
     consts::AllConsts
