@@ -1,3 +1,22 @@
+function construct_n_operator_matrices(
+    S::Float64,
+    J::Float64,
+    Σ_vec::Vector{Float64},
+    Ω_vec::Vector{Float64},
+    max_n_index::Int,
+    dim::Int,
+)
+    n_op_mats = [zeros(Float64, dim, dim) for _ in 1:6]
+
+    n_op_mats[begin] = n_squared(S, J, Σ_vec, Ω_vec, dim)
+
+    for i in 2:max_n_index
+        n_op_mats[i] = n_op_mats[i - 1] * n_op_mats[begin]
+    end
+
+    return n_op_mats
+end
+
 function parse_term_symbol(term_symbol::String)
     spin_multiplicity = parse(Int, term_symbol[begin])
     S = 0.5 * (spin_multiplicity - 1)

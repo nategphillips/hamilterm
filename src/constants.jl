@@ -46,7 +46,7 @@ end
     q_L::Float64 = 0.0
 end
 
-@kwdef struct AllConsts
+@kwdef struct Consts
     rotational::RotationalConsts = RotationalConsts()
     spin_orbit::SpinOrbitConsts = SpinOrbitConsts()
     spin_spin::SpinSpinConsts = SpinSpinConsts()
