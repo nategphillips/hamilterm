@@ -58,19 +58,22 @@ class NumericComputation:
     def hamiltonian(self) -> NDArray[np.float64]:
         s_qn, lambda_qn = utils.parse_term_symbol_num(self.term_symbol)
         basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_num(s_qn, lambda_qn)
-        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns)
 
         dim: int = len(basis_fns)
+
+        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns, dim)
+
         n_op_mats = utils.construct_n_operator_matrices_num(
-            basis_fns, s_qn, self.j_qn, self.max_n_index
+            s_qn, self.j_qn, sigma_basis, omega_basis, self.max_n_index, dim
         )
 
         h_mat: NDArray[np.float64] = np.zeros((dim, dim))
 
         if options.INCLUDE_R:
-            h_mat += terms.rotational_num(n_op_mats, self.consts.rotational)
+            terms.rotational_num(h_mat, n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
-            h_mat += terms.spin_orbit_num(
+            terms.spin_orbit_num(
+                h_mat,
                 lambda_basis,
                 sigma_basis,
                 s_qn,
@@ -79,11 +82,12 @@ class NumericComputation:
                 self.max_acomm_index,
             )
         if options.INCLUDE_SS:
-            h_mat += terms.spin_spin_num(
-                sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
+            terms.spin_spin_num(
+                h_mat, sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
             )
         if options.INCLUDE_SR:
-            h_mat += terms.spin_rotation_num(
+            terms.spin_rotation_num(
+                h_mat,
                 sigma_basis,
                 omega_basis,
                 s_qn,
@@ -91,9 +95,11 @@ class NumericComputation:
                 n_op_mats,
                 self.consts.spin_rotation,
                 self.max_acomm_index,
+                dim,
             )
         if options.INCLUDE_LD:
-            h_mat += terms.lambda_doubling_num(
+            terms.lambda_doubling_num(
+                h_mat,
                 lambda_basis,
                 sigma_basis,
                 omega_basis,
@@ -102,6 +108,7 @@ class NumericComputation:
                 n_op_mats,
                 self.consts.lambda_doubling,
                 self.max_acomm_index,
+                dim,
             )
 
         return h_mat
@@ -153,7 +160,7 @@ def three_sigma(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t3Σ Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t3Σ Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def two_pi(num: int) -> None:
@@ -174,7 +181,7 @@ def two_pi(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t2Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t2Π Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def five_pi(num: int) -> None:
@@ -214,7 +221,7 @@ def five_pi(num: int) -> None:
         comp = NumericComputation(term_symbol, consts, j_qn, max_n_power=12, max_acomm_power=8)
         comp.hamiltonian
 
-    print(f"{num}\t5Π Hamiltonians - vectorized: {timeit.timeit(bench, number=num)} s")
+    print(f"{num}\t5Π Hamiltonians: {timeit.timeit(bench, number=num)} s")
 
 
 def main() -> None:

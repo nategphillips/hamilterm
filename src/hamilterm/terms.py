@@ -25,8 +25,8 @@ from hamilterm import elements as mel
 
 
 def rotational_num(
-    n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConstsNum
-) -> NDArray[np.float64]:
+    ham, n_op_mats: list[NDArray[np.float64]], r_consts: constants.RotationalConstsNum
+) -> None:
     """Return matrix elements for the rotational Hamiltonian.
 
     H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
@@ -39,7 +39,7 @@ def rotational_num(
         float: Matrix elements for BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
     """
     # BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
-    return (
+    ham += (
         r_consts.B * n_op_mats[0]
         - r_consts.D * n_op_mats[1]
         + r_consts.H * n_op_mats[2]
@@ -66,13 +66,14 @@ def rotational_sym(
 
 
 def spin_orbit_num(
+    ham,
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     so_consts: constants.SpinOrbitConstsNum,
     max_acomm_index: int,
-) -> NDArray[np.float64]:
+) -> None:
     """Return matrix elements for the spin-orbit Hamiltonian.
 
     H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
@@ -91,18 +92,14 @@ def spin_orbit_num(
         float: Matrix elements for A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+
             + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+ + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
     """
-    dim: int = lambda_basis.size
-
-    result: NDArray[np.float64] = np.zeros((dim, dim))
-
     # Spin-orbit coupling is only defined for states with Λ > 0 and S > 0. Since the Λ values in the
     # basis functions range from -Λ to +Λ, make sure to get the absolute value, |Λ|.
     if (np.abs(lambda_basis).max() == 0) or (s_qn <= 0.0):
-        return result
+        return
 
     # A(LzSz)
     lz_sz: NDArray[np.float64] = mel.lz_sz_num(lambda_basis, sigma_basis)
-    result += so_consts.A * lz_sz
+    ham += so_consts.A * lz_sz
 
     spin_orbit_cd_consts: NDArray[np.float64] = np.array(
         [
@@ -123,14 +120,12 @@ def spin_orbit_num(
             # ⟨i|A_x/2[N^{2n}, LzSz]+|j⟩ = A_x/2[⟨i|N^{2n}(LzSz)|j⟩ + ⟨i|(LzSz)N^{2n}|j⟩]
             #                            = A_x/2(∑_k⟨i|N^{2n}|k⟩⟨k|LzSz|j⟩ + ∑_k⟨i|LzSz|k⟩⟨k|N^{2n}|j⟩)
             #                            = A_x/2[(N^{2n})_{ik}(LzSz)_{kj} + (LzSz)_{ik}(N^{2n})_{kj}]
-            result += 0.5 * const * (n_op_mats[idx] @ lz_sz + lz_sz @ n_op_mats[idx])
+            ham += 0.5 * const * (n_op_mats[idx] @ lz_sz + lz_sz @ n_op_mats[idx])
 
     # ηLzSz[Sz^2 - 1/5(3S^2 - 1)] term only valid for states with S > 1.
     if s_qn > 1.0:
         # ⟨Λ, Σ|ηLzSz[Sz^2 - 1/5(3S^2 - 1)]|Λ, Σ⟩ = ηΛΣ[Σ^2 - 1/5(3S(S + 1) - 1)]
-        result += so_consts.eta * lz_sz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared_num(s_qn) - 1))
-
-    return result
+        ham += so_consts.eta * lz_sz * (sigma_basis**2 - 0.2 * (3 * mel.s_squared_num(s_qn) - 1))
 
 
 def spin_orbit_sym(
@@ -178,12 +173,13 @@ def spin_orbit_sym(
 
 
 def spin_spin_num(
+    ham,
     sigma_basis: NDArray[np.float64],
     s_qn: float,
     n_op_mats: list[NDArray[np.float64]],
     ss_consts: constants.SpinSpinConstsNum,
     max_acomm_index: int,
-) -> NDArray[np.float64]:
+) -> None:
     """Return matrix elements for the spin-spin Hamiltonian.
 
     H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
@@ -202,17 +198,13 @@ def spin_spin_num(
         float: Matrix elements for 2λ/3(3Sz^2 - S^2) + λ_D/2[2/3(3Sz^2 - S^2), N^2]+
             + λ_H/2[2/3(3Sz^2 - S^2), N^4]+ + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     """
-    dim: int = sigma_basis.size
-
-    result: NDArray[np.float64] = np.zeros((dim, dim))
-
     # Spin-spin coupling is only defined for states with S > 1/2.
     if s_qn <= 0.5:
-        return result
+        return
 
     # 2λ/3(3Sz^2 - S^2)
     three_sz2_minus_s2: NDArray[np.float64] = mel.three_sz2_minus_s2_num(sigma_basis, s_qn)
-    result += (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
+    ham += (2.0 * ss_consts.lamda / 3.0) * three_sz2_minus_s2
 
     spin_spin_cd_consts: NDArray[np.float64] = np.array([ss_consts.lamda_D, ss_consts.lamda_H])[
         :max_acomm_index
@@ -229,7 +221,7 @@ def spin_spin_num(
             #   = λ_x/3[⟨i|(3Sz^2 - S^2)N^{2n}|j⟩ + ⟨i|N^{2n}(3Sz^2 - S^2)|j⟩]
             #   = λ_x/3(∑_k⟨i|(3Sz^2 - S^2)|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|(3Sz^2 - S^2)|j⟩)
             #   = λ_x/3[(3Sz^2 - S^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(3Sz^2 - S^2)_{kj}]
-            result += (const / 3.0) * (
+            ham += (const / 3.0) * (
                 three_sz2_minus_s2 @ n_op_mats[idx] + n_op_mats[idx] @ three_sz2_minus_s2
             )
 
@@ -237,7 +229,7 @@ def spin_spin_num(
     if s_qn > 1.5:
         # ⟨S, Σ|θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)|S, Σ⟩
         #   = θ/12(35Σ^4 - 30S(S + 1)Σ^2 + 25Σ^2 - 6S(S + 1) + 3[S(S + 1)]^2)
-        result += np.diag(
+        ham += np.diag(
             (ss_consts.theta / 12.0)
             * (
                 35.0 * sigma_basis**4
@@ -247,8 +239,6 @@ def spin_spin_num(
                 + 3.0 * mel.s_squared_num(s_qn) ** 2
             )
         )
-
-    return result
 
 
 def spin_spin_sym(
@@ -299,6 +289,7 @@ def spin_spin_sym(
 
 
 def spin_rotation_num(
+    ham,
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
     s_qn: float,
@@ -306,7 +297,8 @@ def spin_rotation_num(
     n_op_mats: list[NDArray[np.float64]],
     sr_consts: constants.SpinRotationConstsNum,
     max_acomm_index: int,
-) -> NDArray[np.float64]:
+    dim: int,
+) -> None:
     """Return matrix elements for the spin-rotation Hamiltonian.
 
     H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
@@ -326,17 +318,13 @@ def spin_rotation_num(
         float: Matrix elements for γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
             + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
     """
-    dim: int = sigma_basis.size
-
-    result: NDArray[np.float64] = np.zeros((dim, dim))
-
     # Spin-rotation coupling is only defined for states with S > 0.
     if s_qn <= 0.0:
-        return result
+        return
 
     # γ(N·S)
-    n_dot_s: NDArray[np.float64] = mel.n_dot_s_num(sigma_basis, omega_basis, s_qn, j_qn)
-    result += sr_consts.gamma * n_dot_s
+    n_dot_s: NDArray[np.float64] = mel.n_dot_s_num(sigma_basis, omega_basis, s_qn, j_qn, dim)
+    ham += sr_consts.gamma * n_dot_s
 
     spin_rotation_cd_consts: NDArray[np.float64] = np.array(
         [sr_consts.gamma_D, sr_consts.gamma_H, sr_consts.gamma_L]
@@ -352,7 +340,7 @@ def spin_rotation_num(
             # ⟨i|γ_x/2[N·S, N^{2n}]+|j⟩ = γ_x/2[⟨i|(N·S)N^{2n}|j⟩ + ⟨i|N^{2n}(N·S)|j⟩]
             #                           = γ_x/2(∑_k⟨i|N·S|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|N·S|j⟩)
             #                           = γ_x/2[(N·S)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(N·S)_{kj}]
-            result += 0.5 * const * (n_dot_s @ n_op_mats[idx] + n_op_mats[idx] @ n_dot_s)
+            ham += 0.5 * const * (n_dot_s @ n_op_mats[idx] + n_op_mats[idx] @ n_dot_s)
 
     # -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)} term only valid for states with S > 1.
     if s_qn > 1.0:
@@ -386,10 +374,8 @@ def spin_rotation_num(
             * mel.s_plus_num(s_qn, sigma_j)
         )
 
-        result[mask_minus] += term_minus[mask_minus]
-        result[mask_plus] += term_plus[mask_plus]
-
-    return result
+        ham[mask_minus] += term_minus[mask_minus]
+        ham[mask_plus] += term_plus[mask_plus]
 
 
 def spin_rotation_sym(
@@ -450,6 +436,7 @@ def spin_rotation_sym(
 
 
 def lambda_doubling_num(
+    ham,
     lambda_basis: NDArray[np.int64],
     sigma_basis: NDArray[np.float64],
     omega_basis: NDArray[np.float64],
@@ -458,7 +445,8 @@ def lambda_doubling_num(
     n_op_mats: list[NDArray[np.float64]],
     ld_consts: constants.LambdaDoublingConstsNum,
     max_acomm_index: int,
-) -> NDArray[np.float64]:
+    dim: int,
+) -> None:
     """Return matrix elements for the lambda doubling Hamiltonian.
 
     H_ld = 0.5(o + p + q)(S+^2 + S-^2) - 0.5(p + 2q)(J+S+ + J-S-) + q/2(J+^2 + J-^2)
@@ -482,27 +470,23 @@ def lambda_doubling_num(
             + 0.25(o_H + p_H + q_H)[S+^2 + S-^2, N^4]+ - 0.25(p_H + 2 * q_H)[J+S+ + J-S-, N^4]+ + q_H/4[J+^2 + J-^2, N^4]+
             + 0.25(o_L + p_L + q_L)[S+^2 + S-^2, N^6]+ - 0.25(p_L + 2 * q_L)[J+S+ + J-S-, N^6]+ + q_L/4[J+^2 + J-^2, N^6]+
     """
-    dim: int = lambda_basis.size
-
-    result: NDArray[np.float64] = np.zeros((dim, dim))
-
     # Lambda doubling is only defined for Λ ± 2 transitions, i.e., Π states.
     if lambda_basis.max() != 1.0:
-        return result
+        return
 
     # 0.5(o + p + q)(S+^2 + S-^2)
-    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_num(lambda_basis, sigma_basis, s_qn)
-    result += 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * sp2_plus_sm2
+    sp2_plus_sm2: NDArray[np.float64] = mel.sp2_plus_sm2_num(lambda_basis, sigma_basis, s_qn, dim)
+    ham += 0.5 * (ld_consts.o + ld_consts.p + ld_consts.q) * sp2_plus_sm2
 
     # -0.5(p + 2q)(J+S+ + J-S-)
     jpsp_plus_jmsm: NDArray[np.float64] = mel.jpsp_plus_jmsm_num(
-        lambda_basis, sigma_basis, omega_basis, s_qn, j_qn
+        lambda_basis, sigma_basis, omega_basis, s_qn, j_qn, dim
     )
-    result += -0.5 * (ld_consts.p + 2 * ld_consts.q) * jpsp_plus_jmsm
+    ham += -0.5 * (ld_consts.p + 2 * ld_consts.q) * jpsp_plus_jmsm
 
     # q/2(J+^2 + J-^2)
-    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_num(lambda_basis, omega_basis, j_qn)
-    result += 0.5 * ld_consts.q * jp2_plus_jm2
+    jp2_plus_jm2: NDArray[np.float64] = mel.jp2_plus_jm2_num(lambda_basis, omega_basis, j_qn, dim)
+    ham += 0.5 * ld_consts.q * jp2_plus_jm2
 
     lambda_doubling_cd_consts_opq: NDArray[np.float64] = np.array(
         [
@@ -544,14 +528,14 @@ def lambda_doubling_num(
             #   = 0.25(o_x + p_x + q_x)[⟨i|(S+^2 + S-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(S+^2 + S-^2)|j⟩]
             #   = 0.25(o_x + p_x + q_x)(∑_k⟨i|S+^2 + S-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|S+^2 + S-^2|j⟩)
             #   = 0.25(o_x + p_x + q_x)[(S+^2 + S-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(S+^2 + S-^2)_{kj}]
-            result += 0.25 * const * (sp2_plus_sm2 @ n_op_mats[idx] + n_op_mats[idx] @ sp2_plus_sm2)
+            ham += 0.25 * const * (sp2_plus_sm2 @ n_op_mats[idx] + n_op_mats[idx] @ sp2_plus_sm2)
 
         for idx, const in enumerate(lambda_doubling_cd_consts_pq):
             # ⟨i|[-0.25(p_x + 2 * q_x)(J+S+ + J-S-), N^{2n}]+|j⟩
             #   = -0.25(p_x + 2 * q_x)[⟨i|(J+S+ + J-S-)N^{2n}|j⟩ + ⟨i|N^{2n}(J+S+ + J-S-)|j⟩]
             #   = -0.25(p_x + 2 * q_x)(∑_k⟨i|J+S+ + J-S-|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+S+ + J-S-|j⟩)
             #   = -0.25(p_x + 2 * q_x)[(J+S+ + J-S-)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+S+ + J-S-)_{kj}]
-            result += (
+            ham += (
                 -0.25 * const * (jpsp_plus_jmsm @ n_op_mats[idx] + n_op_mats[idx] @ jpsp_plus_jmsm)
             )
 
@@ -560,9 +544,7 @@ def lambda_doubling_num(
             #   = 0.25 * q_x[⟨i|(J+^2 + J-^2)N^{2n}|j⟩ + ⟨i|N^{2n}(J+^2 + J-^2)|j⟩]
             #   = 0.25 * q_x(∑_k⟨i|J+^2 + J-^2|k⟩⟨k|N^{2n}|j⟩ + ∑_k⟨i|N^{2n}|k⟩⟨k|J+^2 + J-^2|j⟩)
             #   = 0.25 * q_x[(J+^2 + J-^2)_{ik}(N^{2n})_{kj} + (N^{2n})_{ik}(J+^2 + J-^2)_{kj}]
-            result += 0.25 * const * (jp2_plus_jm2 @ n_op_mats[idx] + n_op_mats[idx] @ jp2_plus_jm2)
-
-    return result
+            ham += 0.25 * const * (jp2_plus_jm2 @ n_op_mats[idx] + n_op_mats[idx] @ jp2_plus_jm2)
 
 
 def lambda_doubling_sym(
