@@ -43,4 +43,4 @@ extend-select = [
 convention = "google"
 
 [tool.uv]
-required-version = "==0.8.11"
+required-version = "==0.8.24"
