@@ -1,5 +1,5 @@
 [project]
-name = "hamilterm"
+name = "Hamilterm"
 version = "0.1.0"
 description = "Symbolically and numerically computes the rotational Hamiltonian for a given molecular term symbol."
 readme = "README.md"
