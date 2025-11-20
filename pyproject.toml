@@ -6,9 +6,9 @@ readme = "README.md"
 authors = [
     { name = "nategphillips", email = "30729007+nategphillips@users.noreply.github.com" }
 ]
-requires-python = "==3.13.7"
+requires-python = ">=3.14.0"
 dependencies = [
-    "numpy==2.3.2",
+    "numpy==2.3.5",
     "sympy==1.14.0",
 ]
 
@@ -43,4 +43,4 @@ extend-select = [
 convention = "google"
 
 [tool.uv]
-required-version = "==0.8.24"
+required-version = ">=0.9.10"
