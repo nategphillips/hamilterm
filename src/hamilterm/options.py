@@ -1,7 +1,7 @@
 # module options.py
 """Input options for the user to select."""
 
-# Copyright (C) 2025 Nathan G. Phillips
+# Copyright (C) 2025-2026 Nathan G. Phillips
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,12 +17,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Manually select which terms contribute to the molecular Hamiltonian.
-INCLUDE_R: bool = True
-INCLUDE_SO: bool = True
-INCLUDE_SS: bool = True
-INCLUDE_SR: bool = True
-INCLUDE_LD: bool = True
+INCLUDE_R = True
+INCLUDE_SO = True
+INCLUDE_SS = True
+INCLUDE_SR = True
+INCLUDE_LD = True
 
-LAMBDA_INT_MAP: dict[str, int] = {"S": 0, "P": 1}
-LAMBDA_STR_MAP: dict[str, str] = {"S": "Σ", "P": "Π"}
-LAMBDA_LONG_MAP: dict[str, str] = {"S": "Sigma", "P": "Pi"}
+LAMBDA_INT_MAP = {"S": 0, "P": 1}
+LAMBDA_STR_MAP = {"S": "Σ", "P": "Π"}
+LAMBDA_LONG_MAP = {"S": "Sigma", "P": "Pi"}

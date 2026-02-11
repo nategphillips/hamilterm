@@ -1,7 +1,7 @@
 # module numerics.py
 """Numerically computes the diatomic Hamiltonian for Σ and Π states."""
 
-# Copyright (C) 2025 Nathan G. Phillips
+# Copyright (C) 2025-2026 Nathan G. Phillips
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,12 +18,15 @@
 
 import timeit
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.linalg._linalg import EighResult
-from numpy.typing import NDArray
 
 from hamilterm import constants, options, terms, utils
+
+if TYPE_CHECKING:
+    from numpy.linalg._linalg import EighResult
+    from numpy.typing import NDArray
 
 
 class NumericComputation:
@@ -32,7 +35,7 @@ class NumericComputation:
     def __init__(
         self,
         term_symbol: str,
-        consts: constants.ConstantsNum,
+        consts: constants.Constants,
         j_qn: float,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
@@ -40,39 +43,38 @@ class NumericComputation:
         """Initialize class variables.
 
         Args:
-            term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
-            consts (constants.NumericConstants): Molecular constants
-            j_qn (float): Quantum number J
-            max_n_power (int, optional): Maximum power of N matrices to compute, can be 2, 4, 6, 8,
-                10, or 12. Defaults to 4.
-            max_acomm_power (int, optional): Maximum power of N used when evaluating
-                anticommutators, can be 0, 2, 4, 6, or 8. Defaults to 2.
+            term_symbol: Molecular term symbol, e.g., "2Pi" or "3Sigma".
+            consts: Molecular constants.
+            j_qn: Quantum number J.
+            max_n_power: Maximum power of N matrices to compute: can be 2, 4, 6, 8, 10, or 12.
+            max_acomm_power: Maximum power of N used when evaluating anticommutators: can be 0, 2,
+                4, 6, or 8.
         """
-        self.term_symbol: str = term_symbol
-        self.consts: constants.ConstantsNum = consts
-        self.j_qn: float = j_qn
-        self.max_n_index: int = max_n_power // 2
-        self.max_acomm_index: int = max_acomm_power // 2
+        self.term_symbol = term_symbol
+        self.consts = consts
+        self.j_qn = j_qn
+        self.max_n_index = max_n_power // 2
+        self.max_acomm_index = max_acomm_power // 2
 
     @cached_property
     def hamiltonian(self) -> NDArray[np.float64]:
-        s_qn, lambda_qn = utils.parse_term_symbol_num(self.term_symbol)
-        basis_fns: list[tuple[int, float, float]] = utils.generate_basis_fns_num(s_qn, lambda_qn)
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+        basis_fns = utils.generate_basis_fns(s_qn, lambda_qn)
 
-        dim: int = len(basis_fns)
+        dim = len(basis_fns)
 
-        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors_num(basis_fns, dim)
+        lambda_basis, sigma_basis, omega_basis = utils.basis_vectors(basis_fns, dim)
 
-        n_op_mats = utils.construct_n_operator_matrices_num(
+        n_op_mats = utils.construct_n_operator_matrices(
             s_qn, self.j_qn, sigma_basis, omega_basis, self.max_n_index, dim
         )
 
-        h_mat: NDArray[np.float64] = np.zeros((dim, dim))
+        h_mat = np.zeros((dim, dim))
 
         if options.INCLUDE_R:
-            terms.rotational_num(h_mat, n_op_mats, self.consts.rotational)
+            terms.rotational(h_mat, n_op_mats, self.consts.rotational)
         if options.INCLUDE_SO:
-            terms.spin_orbit_num(
+            terms.spin_orbit(
                 h_mat,
                 lambda_basis,
                 sigma_basis,
@@ -82,11 +84,11 @@ class NumericComputation:
                 self.max_acomm_index,
             )
         if options.INCLUDE_SS:
-            terms.spin_spin_num(
+            terms.spin_spin(
                 h_mat, sigma_basis, s_qn, n_op_mats, self.consts.spin_spin, self.max_acomm_index
             )
         if options.INCLUDE_SR:
-            terms.spin_rotation_num(
+            terms.spin_rotation(
                 h_mat,
                 sigma_basis,
                 omega_basis,
@@ -98,7 +100,7 @@ class NumericComputation:
                 dim,
             )
         if options.INCLUDE_LD:
-            terms.lambda_doubling_num(
+            terms.lambda_doubling(
                 h_mat,
                 lambda_basis,
                 sigma_basis,
@@ -118,7 +120,7 @@ class NumericComputation:
         """Cache the full eigendecomposition.
 
         Returns:
-            EighResult: Eigenvalues and eigenvectors
+            The eigenvalues and eigenvectors of the Hamiltonian.
         """
         # The Hamiltonian matrix is always Hermitian, so eigh can be used.
         return np.linalg.eigh(self.hamiltonian)
@@ -128,7 +130,7 @@ class NumericComputation:
         """Eigenvalues of the Hamiltonian matrix.
 
         Returns:
-            NDArray[np.float64]: Eigenvalues
+            Eigenvalues of the Hamiltonian matrix.
         """
         return self.eigenvalues_eigenvectors[0]
 
@@ -137,23 +139,28 @@ class NumericComputation:
         """Eigenvectors of the Hamiltonian matrix.
 
         Returns:
-            NDArray[np.float64]: Eigenvectors
+            Eigenvectors of the Hamiltonian matrix.
         """
         return self.eigenvalues_eigenvectors[1]
 
 
 def three_sigma(num: int) -> None:
+    """Test function for a 3Σ state.
+
+    Args:
+        num: The number of iterations to perform.
+    """
     # Terms included via the inherent properties of a 3Σ state:
     #   - H_r (all) + H_ss (only S > 1/2 term) + H_sr (only S > 0 term)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: float = 1.0
-    term_symbol: str = "3S"
+    j_qn = 1.0
+    term_symbol = "3S"
 
     # Constants for the v' = 0 B3Σu- state of O2.
-    consts: constants.ConstantsNum = constants.ConstantsNum(
-        rotational=constants.RotationalConstsNum(B=0.8132, D=4.50e-06),
-        spin_spin=constants.SpinSpinConstsNum(lamda=1.69),
-        spin_rotation=constants.SpinRotationConstsNum(gamma=-0.028),
+    consts = constants.Constants(
+        rotational=constants.RotationalConsts(B=0.8132, D=4.50e-06),
+        spin_spin=constants.SpinSpinConsts(lamda=1.69),
+        spin_rotation=constants.SpinRotationConsts(gamma=-0.028),
     )
 
     def bench():
@@ -164,17 +171,22 @@ def three_sigma(num: int) -> None:
 
 
 def two_pi(num: int) -> None:
+    """Test function for a 2Π state.
+
+    Args:
+        num: The number of iterations to perform.
+    """
     # Terms included via the inherent properties of a 2Π state:
     #   - H_r (all) + H_so (only S > 0 term) + H_sr (only S > 0 term) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: float = 1.0
-    term_symbol: str = "2P"
+    j_qn = 1.0
+    term_symbol = "2P"
 
     # Constants for the X2Π ground state of OH.
-    consts: constants.ConstantsNum = constants.ConstantsNum(
-        rotational=constants.RotationalConstsNum(B=18.55),
-        spin_orbit=constants.SpinOrbitConstsNum(A=-139.21),
-        lambda_doubling=constants.LambdaDoublingConstsNum(p=0.235, q=-0.0391),
+    consts = constants.Constants(
+        rotational=constants.RotationalConsts(B=18.55),
+        spin_orbit=constants.SpinOrbitConsts(A=-139.21),
+        lambda_doubling=constants.LambdaDoublingConsts(p=0.235, q=-0.0391),
     )
 
     def bench():
@@ -185,23 +197,28 @@ def two_pi(num: int) -> None:
 
 
 def five_pi(num: int) -> None:
+    """Test function for a 5Π state.
+
+    Args:
+        num: The number of iterations to perform.
+    """
     # Terms included via the inherent properties of a 5Π state:
     #   - H_r (all) + H_so (all) + H_ss (all) + H_sr (all) + H_ld (all)
     # These terms are further narrowed depending on the included constants below.
-    j_qn: float = 5.0
-    term_symbol: str = "5P"
+    j_qn = 5.0
+    term_symbol = "5P"
 
     # Random 5Π state filled with all possible constants.
-    consts: constants.ConstantsNum = constants.ConstantsNum(
-        rotational=constants.RotationalConstsNum(
+    consts = constants.Constants(
+        rotational=constants.RotationalConsts(
             B=18.55, D=4.50e-06, H=4.50e-06, L=4.50e-06, M=4.50e-06, P=4.50e-06
         ),
-        spin_orbit=constants.SpinOrbitConstsNum(A=-139.21, A_D=1, A_H=1, A_L=1, A_M=1, eta=1),
-        spin_spin=constants.SpinSpinConstsNum(lamda=1.69, lamda_D=1, lamda_H=1, theta=1),
-        spin_rotation=constants.SpinRotationConstsNum(
+        spin_orbit=constants.SpinOrbitConsts(A=-139.21, A_D=1, A_H=1, A_L=1, A_M=1, eta=1),
+        spin_spin=constants.SpinSpinConsts(lamda=1.69, lamda_D=1, lamda_H=1, theta=1),
+        spin_rotation=constants.SpinRotationConsts(
             gamma=-0.028, gamma_D=-0.028, gamma_H=-0.028, gamma_L=-0.028, gamma_S=-0.028
         ),
-        lambda_doubling=constants.LambdaDoublingConstsNum(
+        lambda_doubling=constants.LambdaDoublingConsts(
             o=0.1,
             p=0.235,
             q=-0.0391,
