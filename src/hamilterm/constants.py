@@ -23,63 +23,63 @@ from dataclasses import dataclass, field
 class RotationalConsts:
     """Constants for the rotational operator."""
 
-    B = 0.0
-    D = 0.0
-    H = 0.0
-    L = 0.0
-    M = 0.0
-    P = 0.0
+    B: float = 0.0
+    D: float = 0.0
+    H: float = 0.0
+    L: float = 0.0
+    M: float = 0.0
+    P: float = 0.0
 
 
 @dataclass
 class SpinOrbitConsts:
     """Constants for the spin-orbit operator."""
 
-    A = 0.0
-    A_D = 0.0
-    A_H = 0.0
-    A_L = 0.0
-    A_M = 0.0
-    eta = 0.0
+    A: float = 0.0
+    A_D: float = 0.0
+    A_H: float = 0.0
+    A_L: float = 0.0
+    A_M: float = 0.0
+    eta: float = 0.0
 
 
 @dataclass
 class SpinSpinConsts:
     """Constants for the spin-spin operator."""
 
-    lamda = 0.0
-    lamda_D = 0.0
-    lamda_H = 0.0
-    theta = 0.0
+    lamda: float = 0.0
+    lamda_D: float = 0.0
+    lamda_H: float = 0.0
+    theta: float = 0.0
 
 
 @dataclass
 class SpinRotationConsts:
     """Constants for the spin-rotation operator."""
 
-    gamma = 0.0
-    gamma_D = 0.0
-    gamma_H = 0.0
-    gamma_L = 0.0
-    gamma_S = 0.0
+    gamma: float = 0.0
+    gamma_D: float = 0.0
+    gamma_H: float = 0.0
+    gamma_L: float = 0.0
+    gamma_S: float = 0.0
 
 
 @dataclass
 class LambdaDoublingConsts:
     """Constants for the Λ-doubling operator."""
 
-    o = 0.0
-    p = 0.0
-    q = 0.0
-    o_D = 0.0
-    p_D = 0.0
-    q_D = 0.0
-    o_H = 0.0
-    p_H = 0.0
-    q_H = 0.0
-    o_L = 0.0
-    p_L = 0.0
-    q_L = 0.0
+    o: float = 0.0
+    p: float = 0.0
+    q: float = 0.0
+    o_D: float = 0.0
+    p_D: float = 0.0
+    q_D: float = 0.0
+    o_H: float = 0.0
+    p_H: float = 0.0
+    q_H: float = 0.0
+    o_L: float = 0.0
+    p_L: float = 0.0
+    q_L: float = 0.0
 
 
 @dataclass
