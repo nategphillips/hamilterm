@@ -1,6 +1,6 @@
 # Hamilterm
 
-Symbolically or numerically computes the rotational Hamiltonian for a given molecular term symbol.
+Symbolically computes the rotational Hamiltonian for a given molecular term symbol.
 
 ## Example Output
 
@@ -60,7 +60,7 @@ Computing and simplifying the eigenvalues for $^2\Pi$ and higher states is extre
 
 ## License and Copyright
 
-Copyright (C) 2025 Nathan G. Phillips
+Copyright (C) 2025-2026 Nathan G. Phillips
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
