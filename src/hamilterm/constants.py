@@ -1,7 +1,7 @@
 # module constants.py
 """Stores numeric and/or symbolic molecular constants."""
 
-# Copyright (C) 2025 Nathan G. Phillips
+# Copyright (C) 2025-2026 Nathan G. Phillips
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,19 +22,7 @@ from sympy import Symbol
 
 
 @dataclass
-class RotationalConstsNum:
-    """Constants for the rotational operator."""
-
-    B: float = 0.0
-    D: float = 0.0
-    H: float = 0.0
-    L: float = 0.0
-    M: float = 0.0
-    P: float = 0.0
-
-
-@dataclass
-class RotationalConstsSym:
+class RotationalConsts:
     """Constants for the rotational operator."""
 
     B: Symbol = Symbol("B")
@@ -46,19 +34,7 @@ class RotationalConstsSym:
 
 
 @dataclass
-class SpinOrbitConstsNum:
-    """Constants for the spin-orbit operator."""
-
-    A: float = 0.0
-    A_D: float = 0.0
-    A_H: float = 0.0
-    A_L: float = 0.0
-    A_M: float = 0.0
-    eta: float = 0.0
-
-
-@dataclass
-class SpinOrbitConstsSym:
+class SpinOrbitConsts:
     """Constants for the spin-orbit operator."""
 
     A: Symbol = Symbol("A")
@@ -70,17 +46,7 @@ class SpinOrbitConstsSym:
 
 
 @dataclass
-class SpinSpinConstsNum:
-    """Constants for the spin-spin operator."""
-
-    lamda: float = 0.0
-    lamda_D: float = 0.0
-    lamda_H: float = 0.0
-    theta: float = 0.0
-
-
-@dataclass
-class SpinSpinConstsSym:
+class SpinSpinConsts:
     """Constants for the spin-spin operator."""
 
     lamda: Symbol = Symbol("lambda")
@@ -90,18 +56,7 @@ class SpinSpinConstsSym:
 
 
 @dataclass
-class SpinRotationConstsNum:
-    """Constants for the spin-rotation operator."""
-
-    gamma: float = 0.0
-    gamma_D: float = 0.0
-    gamma_H: float = 0.0
-    gamma_L: float = 0.0
-    gamma_S: float = 0.0
-
-
-@dataclass
-class SpinRotationConstsSym:
+class SpinRotationConsts:
     """Constants for the spin-rotation operator."""
 
     gamma: Symbol = Symbol("gamma")
@@ -112,25 +67,7 @@ class SpinRotationConstsSym:
 
 
 @dataclass
-class LambdaDoublingConstsNum:
-    """Constants for the Λ-doubling operator."""
-
-    o: float = 0.0
-    p: float = 0.0
-    q: float = 0.0
-    o_D: float = 0.0
-    p_D: float = 0.0
-    q_D: float = 0.0
-    o_H: float = 0.0
-    p_H: float = 0.0
-    q_H: float = 0.0
-    o_L: float = 0.0
-    p_L: float = 0.0
-    q_L: float = 0.0
-
-
-@dataclass
-class LambdaDoublingConstsSym:
+class LambdaDoublingConsts:
     """Constants for the Λ-doubling operator."""
 
     o: Symbol = Symbol("o")
@@ -148,22 +85,11 @@ class LambdaDoublingConstsSym:
 
 
 @dataclass
-class ConstantsNum:
+class Constants:
     """Container for numeric molecular constants."""
 
-    rotational: RotationalConstsNum = field(default_factory=RotationalConstsNum)
-    spin_orbit: SpinOrbitConstsNum = field(default_factory=SpinOrbitConstsNum)
-    spin_spin: SpinSpinConstsNum = field(default_factory=SpinSpinConstsNum)
-    spin_rotation: SpinRotationConstsNum = field(default_factory=SpinRotationConstsNum)
-    lambda_doubling: LambdaDoublingConstsNum = field(default_factory=LambdaDoublingConstsNum)
-
-
-@dataclass
-class ConstantsSym:
-    """Container for numeric molecular constants."""
-
-    rotational: RotationalConstsSym = field(default_factory=RotationalConstsSym)
-    spin_orbit: SpinOrbitConstsSym = field(default_factory=SpinOrbitConstsSym)
-    spin_spin: SpinSpinConstsSym = field(default_factory=SpinSpinConstsSym)
-    spin_rotation: SpinRotationConstsSym = field(default_factory=SpinRotationConstsSym)
-    lambda_doubling: LambdaDoublingConstsSym = field(default_factory=LambdaDoublingConstsSym)
+    rotational: RotationalConsts = field(default_factory=RotationalConsts)
+    spin_orbit: SpinOrbitConsts = field(default_factory=SpinOrbitConsts)
+    spin_spin: SpinSpinConsts = field(default_factory=SpinSpinConsts)
+    spin_rotation: SpinRotationConsts = field(default_factory=SpinRotationConsts)
+    lambda_doubling: LambdaDoublingConsts = field(default_factory=LambdaDoublingConsts)

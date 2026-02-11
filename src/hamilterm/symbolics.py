@@ -1,7 +1,7 @@
 # module symbolics.py
 """Symbolically computes the diatomic Hamiltonian for Σ and Π states."""
 
-# Copyright (C) 2025 Nathan G. Phillips
+# Copyright (C) 2025-2026 Nathan G. Phillips
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ class SymbolicComputation:
     def __init__(
         self,
         term_symbol: str,
-        consts: constants.ConstantsSym,
+        consts: constants.Constants,
         j_qn: Symbol,
         max_n_power: int = 4,
         max_acomm_power: int = 2,
@@ -41,37 +41,34 @@ class SymbolicComputation:
         """Initialize class variables.
 
         Args:
-            term_symbol (str): Molecular term symbol, e.g., "2Pi" or "3Sigma"
-            consts (constants.NumericConstants): Molecular constants
-            j_qn (Symbol): Quantum number J
-            max_n_power (int, optional): Maximum power of N matrices to compute, can be 2, 4, 6, 8,
-                10, or 12. Defaults to 4.
-            max_acomm_power (int, optional): Maximum power of N used when evaluating
-                anticommutators, can be 0, 2, 4, 6, or 8. Defaults to 2.
+            term_symbol: Molecular term symbol, e.g., "2Pi" or "3Sigma".
+            consts: Molecular constants.
+            j_qn: Quantum number J.
+            max_n_power: Maximum power of N matrices to compute: can be 2, 4, 6, 8, 10, or 12.
+            max_acomm_power: Maximum power of N used when evaluating anticommutators: can be 0, 2,
+                4, 6, or 8.
         """
-        self.term_symbol: str = term_symbol
-        self.consts: constants.ConstantsSym = consts
-        self.j_qn: Symbol = j_qn
-        self.max_n_power: int = max_n_power
-        self.max_acomm_power: int = max_acomm_power
-        self.max_n_index: int = max_n_power // 2
-        self.max_acomm_index: int = max_acomm_power // 2
+        self.term_symbol = term_symbol
+        self.consts = consts
+        self.j_qn = j_qn
+        self.max_n_power = max_n_power
+        self.max_acomm_power = max_acomm_power
+        self.max_n_index = max_n_power // 2
+        self.max_acomm_index = max_acomm_power // 2
 
     @cached_property
     def hamiltonian(self) -> MutableDenseMatrix:
         """Build a Hamiltonian matrix for symbolic computation.
 
         Returns:
-            MutableDenseMatrix: Hamiltonian matrix
+            The Hamiltonian matrix.
         """
-        s_qn, lambda_qn = utils.parse_term_symbol_sym(self.term_symbol)
-        basis_fns: list[tuple[Integer, Rational, Rational]] = utils.generate_basis_fns_sym(
-            s_qn, lambda_qn
-        )
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
+        basis_fns = utils.generate_basis_fns(s_qn, lambda_qn)
 
-        dim: int = len(basis_fns)
+        dim = len(basis_fns)
 
-        n_op_mats = utils.construct_n_operator_matrices_sym(
+        n_op_mats = utils.construct_n_operator_matrices(
             basis_fns, s_qn, self.j_qn, self.max_n_index, dim
         )
 
@@ -91,9 +88,9 @@ class SymbolicComputation:
         for i in range(dim):
             for j in range(dim):
                 h_mat[i, j] = (
-                    switch_r * terms.rotational_sym(i, j, n_op_mats, self.consts.rotational)
+                    switch_r * terms.rotational(i, j, n_op_mats, self.consts.rotational)
                     + switch_so
-                    * terms.spin_orbit_sym(
+                    * terms.spin_orbit(
                         i,
                         j,
                         basis_fns,
@@ -103,7 +100,7 @@ class SymbolicComputation:
                         self.max_acomm_index,
                     )
                     + switch_ss
-                    * terms.spin_spin_sym(
+                    * terms.spin_spin(
                         i,
                         j,
                         basis_fns,
@@ -113,7 +110,7 @@ class SymbolicComputation:
                         self.max_acomm_index,
                     )
                     + switch_sr
-                    * terms.spin_rotation_sym(
+                    * terms.spin_rotation(
                         i,
                         j,
                         basis_fns,
@@ -124,7 +121,7 @@ class SymbolicComputation:
                         self.max_acomm_index,
                     )
                     + switch_ld
-                    * terms.lambda_doubling_sym(
+                    * terms.lambda_doubling(
                         i,
                         j,
                         basis_fns,
@@ -136,7 +133,7 @@ class SymbolicComputation:
                     )
                 )
 
-        x: Symbol = sp.symbols("x")
+        x = Symbol("x")
 
         return h_mat.subs(self.j_qn * (self.j_qn + 1), x).applyfunc(sp.simplify)
 
@@ -156,16 +153,14 @@ class SymbolicComputation:
         print(f" • Computed up to N^{self.max_n_power}")
         print(f" • max anticommutator value N^{self.max_acomm_power}")
 
-        s_qn, lambda_qn = utils.parse_term_symbol_sym(self.term_symbol)
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
 
         print("\nTerm symbol:")
         print(
             f" • {self.term_symbol[0]}{options.LAMBDA_STR_MAP[self.term_symbol[1:]]}: S={s_qn}, Λ={lambda_qn}"
         )
 
-        basis_fns: list[tuple[Integer, Rational, Rational]] = utils.generate_basis_fns_sym(
-            s_qn, lambda_qn
-        )
+        basis_fns = utils.generate_basis_fns(s_qn, lambda_qn)
 
         print("\nBasis states |Λ, Σ, Ω>:")
         for state in basis_fns:
@@ -190,8 +185,8 @@ class SymbolicComputation:
         print("\nHamiltonian matrix:")
         sp.pprint(self.hamiltonian)
 
-        eigenval_dict: dict[Expr, int] = cast("dict[Expr, int]", self.eigenvalues)
-        eigenval_list: list[Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
+        eigenval_dict = cast("dict[Expr, int]", self.eigenvalues)
+        eigenval_list = [eigenval.simplify() for eigenval in eigenval_dict]
 
         print("\nEigenvalues:")
         for eigenval in eigenval_list:
@@ -199,14 +194,12 @@ class SymbolicComputation:
 
     def print_to_tex(self) -> None:
         """Output general info, basis states, the Hamiltonian, and eigenvalues to a tex file."""
-        s_qn, lambda_qn = utils.parse_term_symbol_sym(self.term_symbol)
+        s_qn, lambda_qn = utils.parse_term_symbol(self.term_symbol)
 
-        tex_term: str = rf"\item $^{self.term_symbol[0]}\{options.LAMBDA_LONG_MAP[self.term_symbol[1:]]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
+        tex_term = rf"\item $^{self.term_symbol[0]}\{options.LAMBDA_LONG_MAP[self.term_symbol[1:]]}:\quad S={s_qn},\;\Lambda={lambda_qn}$"
         tex_ham: str = sp.latex(self.hamiltonian)
 
-        basis_fns: list[tuple[Integer, Rational, Rational]] = utils.generate_basis_fns_sym(
-            s_qn, lambda_qn
-        )
+        basis_fns = utils.generate_basis_fns(s_qn, lambda_qn)
 
         basis_items: list[str] = []
         for lam, sig, ome in basis_fns:
@@ -214,7 +207,7 @@ class SymbolicComputation:
                 rf"\item $\lvert {fsn(lam, tex=True)},\,{fsn(sig, tex=True)},\,{fsn(ome, tex=True)}\rangle$"
             )
 
-        lines: list[str] = [
+        lines = [
             r"\documentclass[12pt,fleqn]{article}",
             r"\usepackage[margin=0.25in]{geometry}",
             r"\usepackage{amsmath,amssymb,bm,parskip}",
@@ -225,7 +218,7 @@ class SymbolicComputation:
             r"\textbf{Info:}",
             r"\begin{itemize}",
             rf"\item Computed up to $\bm{{N}}^{self.max_n_power}$",
-            rf"\item Max anticommutator value $\bm{{N}}^{self.max_acomm_power}",
+            rf"\item Max anticommutator value $\bm{{N}}^{self.max_acomm_power}$",
             r"\end{itemize}",
             "",
             r"\textbf{Term symbol:}",
@@ -269,18 +262,18 @@ class SymbolicComputation:
             r"\begin{aligned}",
         ]
 
-        eigenval_dict: dict[Expr, int] = cast("dict[Expr, int]", self.eigenvalues)
-        eigenval_list: list[Expr] = [eigenval.simplify() for eigenval in eigenval_dict]
+        eigenval_dict = cast("dict[Expr, int]", self.eigenvalues)
+        eigenval_list = [eigenval.simplify() for eigenval in eigenval_dict]
 
         for idx, eigenval in enumerate(eigenval_list, start=1):
             lines.append(rf"F_{{{idx}}} &= {sp.latex(eigenval)} \\")
 
         lines += [r"\end{aligned}", r"$}", r"\end{equation*}", "", r"\end{document}"]
 
-        tex_str: str = "\n".join(lines)
+        tex_str = "\n".join(lines)
 
-        filedir: Path = Path("../../docs/main.tex")
-        workdir: Path = Path("../../docs/")
+        filedir = Path("../../docs/main.tex")
+        workdir = Path("../../docs/")
 
         with open(filedir, "w") as file:
             file.write(tex_str)
@@ -293,7 +286,7 @@ class AntiCommutator(Expr):
 
     def _sympystr(self, printer):
         # TODO: 25/06/11 - This is the fallback for the Unicode pretty printer, which means the
-        #       superscripts on the N^{2n} terms and the `*` symbols aren't converted to their
+        #       superscripts on the N^(2k) terms and the `*` symbols aren't converted to their
         #       Unicode counterparts. Doesn't matter, just looks slightly worse than it could.
         a, b = self.args
         return f"[{printer._print(a)}, {printer._print(b)}]_+"
@@ -304,7 +297,7 @@ class AntiCommutator(Expr):
 
 
 class DotSymbol(Symbol):
-    r"""Overrides the LaTeX output for \cdot."""
+    r"""Overrides the LaTeX output for `\cdot`."""
 
     def _latex(self, _):
         return r"\cdot"
@@ -314,22 +307,22 @@ def included_hamiltonian_terms(
     s_qn: Rational,
     j_qn: Symbol,
     lambda_qn: Integer,
-    consts: constants.ConstantsSym,
+    consts: constants.Constants,
     max_n_index: int,
     max_acomm_index: int,
 ) -> list[Expr]:
     """Return symbolic expressions for the terms included in the diatomic Hamiltonian.
 
     Args:
-        s_qn (Rational): Quantum number S
-        j_qn (Symbol): Quantum number J
-        lambda_qn (Integer): Quantum number Λ
-        consts (Constants): Molecular constants
-        max_n_index (int): Index of the maximum N^{2k} matrix to compute
-        max_acomm_index (int): Index of the maximum anticommutator term to compute
+        s_qn: Quantum number S.
+        j_qn: Quantum number J.
+        lambda_qn: Quantum number Λ.
+        consts: Molecular constants.
+        max_n_index: Index of the maximum N^(2k) matrix to compute.
+        max_acomm_index: Index of the maximum anticommutator term to compute.
 
     Returns:
-        list[Expr]: Terms included in the diatomic Hamiltonian
+        Terms included in the diatomic Hamiltonian.
     """
     N, S, S_z = sp.symbols("N, S, S_z")
 
@@ -341,7 +334,7 @@ def included_hamiltonian_terms(
 
     # H_r = BN^2 - DN^4 + HN^6 + LN^8 + MN^10 + PN^12
     if options.INCLUDE_R:
-        r_consts: constants.RotationalConstsSym = consts.rotational
+        r_consts: constants.RotationalConsts = consts.rotational
         coeffs: list[tuple[Expr, int]] = [
             (r_consts.B, 2),
             (-r_consts.D, 4),
@@ -357,7 +350,7 @@ def included_hamiltonian_terms(
     # H_so = A(LzSz) + A_D/2[N^2, LzSz]+ + A_H/2[N^4, LzSz]+ + A_L/2[N^6, LzSz]+ + A_M/2[N^8, LzSz]+
     #   + ηLzSz[Sz^2 - 1/5(3S^2 - 1)]
     if options.INCLUDE_SO and lambda_qn > 0 and s_qn > 0:
-        so_consts: constants.SpinOrbitConstsSym = consts.spin_orbit
+        so_consts: constants.SpinOrbitConsts = consts.spin_orbit
         L_z: Symbol = Symbol("L_z")
 
         # A(LzSz)
@@ -381,7 +374,7 @@ def included_hamiltonian_terms(
     # H_ss = 2λ/3(3Sz^2 - S^2) + λ_D/3[(3Sz^2 - S^2), N^2]+ + λ_H/3[(3Sz^2 - S^2), N^4]+
     #   + θ/12(35Sz^4 - 30S^2Sz^2 + 25Sz^2 - 6S^2 + 3S^4)
     if options.INCLUDE_SS and s_qn > Rational(1, 2):
-        ss_consts: constants.SpinSpinConstsSym = consts.spin_spin
+        ss_consts: constants.SpinSpinConsts = consts.spin_spin
         # 2λ/3(3Sz^2 - S^2)
         h_ss += Rational(2, 3) * ss_consts.lamda * (3 * S_z**2 - S**2)
 
@@ -406,7 +399,7 @@ def included_hamiltonian_terms(
     # H_sr = γ(N·S) + γ_D/2[N·S, N^2]+ + γ_H/2[N·S, N^4]+ + γ_L/2[N·S, N^6]+
     #   + -(70/3)^(1/2)γ_S * T_0^2{T^1(J), T^3(S)}
     if options.INCLUDE_SR and s_qn > 0:
-        sr_consts: constants.SpinRotationConstsSym = consts.spin_rotation
+        sr_consts: constants.SpinRotationConsts = consts.spin_rotation
         dot: DotSymbol = DotSymbol("dot", commutative=False)
         T_0: Symbol = Symbol("T_0")
         ndots: Expr = sp.Mul(N, dot, S, evaluate=False)
@@ -437,7 +430,7 @@ def included_hamiltonian_terms(
     #   - 0.25[N+S+ + N-S-, p_D * N^2 + p_H * N^4 + p_L * N^6]+
     #   + 0.25[N+^2 + N-^2, q_D * N^2 + q_H * N^4 + q_L * N^6]+
     if options.INCLUDE_LD and lambda_qn == 1:
-        ld_consts: constants.LambdaDoublingConstsSym = consts.lambda_doubling
+        ld_consts: constants.LambdaDoublingConsts = consts.lambda_doubling
         Np, Nm, Sp, Sm = sp.symbols("N_+, N_-, S_+, S_-")
 
         # q/2(N+^2 + N-^2)
@@ -478,10 +471,10 @@ def fsn(num: int | Rational | Expr, tex: bool = False) -> str:
     """Format signed number for printing.
 
     Args:
-        num (int | Rational | Expr): Number
+        num: Number.
 
     Returns:
-        str: Print-friendly string with a +, ±, or -
+        Print-friendly string with a +, ±, or -.
     """
     s: str = str(num)
 
@@ -497,12 +490,11 @@ def fsn(num: int | Rational | Expr, tex: bool = False) -> str:
 
 def main() -> None:
     """Entry point."""
-    j_qn: Symbol = Symbol("J")
-    term_symbol: str = "2S"
+    j_qn = Symbol("J")
+    term_symbol = "2S"
 
-    consts: constants.ConstantsSym = constants.ConstantsSym()
-
-    comp: SymbolicComputation = SymbolicComputation(term_symbol, consts, j_qn)
+    consts = constants.Constants()
+    comp = SymbolicComputation(term_symbol, consts, j_qn)
 
     comp.print_to_terminal()
     comp.print_to_tex()

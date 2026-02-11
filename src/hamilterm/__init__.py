@@ -1,7 +1,7 @@
 # module __init__.py
-"""Symbolically or numerically computes the rotational Hamiltonian for a given molecular term symbol."""
+"""Symbolically computes the rotational Hamiltonian for a given molecular term symbol."""
 
-# Copyright (C) 2025 Nathan G. Phillips
+# Copyright (C) 2025-2026 Nathan G. Phillips
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
